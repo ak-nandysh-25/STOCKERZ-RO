@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, PageHeader } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink } from "@/lib/app-utils";
-import { AlertTriangle, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from "recharts";
+import { fmtMoney, upper, useShop, waLink } from "@/lib/app-utils";
+import { AlertTriangle, Droplet, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle } from "lucide-react";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from "recharts";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -13,6 +13,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
+  const { data: shop } = useShop();
+
   const { data: stats } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
@@ -60,7 +62,22 @@ function Dashboard() {
 
   return (
     <div>
+      <div className="mb-6 flex items-center gap-3 rounded-2xl glass p-4">
+        {shop?.logo_url ? (
+          <img src={shop.logo_url} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+        ) : (
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary">
+            <Droplet className="h-6 w-6" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Shop</div>
+          <h1 className="truncate text-lg font-bold uppercase-data md:text-xl">{upper(shop?.name) || "MY SHOP"}</h1>
+        </div>
+      </div>
+
       <PageHeader title="Dashboard" description="Overview of your shop performance" />
+
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi icon={ShoppingCart} label="Today's Sales" value={fmtMoney(stats?.todaySales ?? 0)} accent="text-primary" />
