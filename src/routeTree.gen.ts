@@ -21,6 +21,8 @@ import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedEmiRouteImport } from './routes/_authenticated/emi'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
+import { Route as AuthenticatedServiceInvoiceIdRouteImport } from './routes/_authenticated/service-invoice.$id'
 import { Route as AuthenticatedInvoiceIdRouteImport } from './routes/_authenticated/invoice.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -83,6 +85,17 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCustomersRoute = AuthenticatedCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedServiceInvoiceIdRoute =
+  AuthenticatedServiceInvoiceIdRouteImport.update({
+    id: '/service-invoice/$id',
+    path: '/service-invoice/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInvoiceIdRoute = AuthenticatedInvoiceIdRouteImport.update({
   id: '/invoice/$id',
   path: '/invoice/$id',
@@ -93,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/emi': typeof AuthenticatedEmiRoute
   '/reports': typeof AuthenticatedReportsRoute
@@ -102,11 +116,13 @@ export interface FileRoutesByFullPath {
   '/stock': typeof AuthenticatedStockRoute
   '/technicians': typeof AuthenticatedTechniciansRoute
   '/invoice/$id': typeof AuthenticatedInvoiceIdRoute
+  '/service-invoice/$id': typeof AuthenticatedServiceInvoiceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/emi': typeof AuthenticatedEmiRoute
   '/reports': typeof AuthenticatedReportsRoute
@@ -116,6 +132,7 @@ export interface FileRoutesByTo {
   '/stock': typeof AuthenticatedStockRoute
   '/technicians': typeof AuthenticatedTechniciansRoute
   '/invoice/$id': typeof AuthenticatedInvoiceIdRoute
+  '/service-invoice/$id': typeof AuthenticatedServiceInvoiceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -123,6 +140,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/emi': typeof AuthenticatedEmiRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
@@ -132,6 +150,7 @@ export interface FileRoutesById {
   '/_authenticated/stock': typeof AuthenticatedStockRoute
   '/_authenticated/technicians': typeof AuthenticatedTechniciansRoute
   '/_authenticated/invoice/$id': typeof AuthenticatedInvoiceIdRoute
+  '/_authenticated/service-invoice/$id': typeof AuthenticatedServiceInvoiceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,6 +158,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/customers'
     | '/dashboard'
     | '/emi'
     | '/reports'
@@ -148,11 +168,13 @@ export interface FileRouteTypes {
     | '/stock'
     | '/technicians'
     | '/invoice/$id'
+    | '/service-invoice/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/customers'
     | '/dashboard'
     | '/emi'
     | '/reports'
@@ -162,12 +184,14 @@ export interface FileRouteTypes {
     | '/stock'
     | '/technicians'
     | '/invoice/$id'
+    | '/service-invoice/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/customers'
     | '/_authenticated/dashboard'
     | '/_authenticated/emi'
     | '/_authenticated/reports'
@@ -177,6 +201,7 @@ export interface FileRouteTypes {
     | '/_authenticated/stock'
     | '/_authenticated/technicians'
     | '/_authenticated/invoice/$id'
+    | '/_authenticated/service-invoice/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -272,6 +297,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/customers': {
+      id: '/_authenticated/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof AuthenticatedCustomersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/service-invoice/$id': {
+      id: '/_authenticated/service-invoice/$id'
+      path: '/service-invoice/$id'
+      fullPath: '/service-invoice/$id'
+      preLoaderRoute: typeof AuthenticatedServiceInvoiceIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/invoice/$id': {
       id: '/_authenticated/invoice/$id'
       path: '/invoice/$id'
@@ -283,6 +322,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEmiRoute: typeof AuthenticatedEmiRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
@@ -292,9 +332,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedStockRoute: typeof AuthenticatedStockRoute
   AuthenticatedTechniciansRoute: typeof AuthenticatedTechniciansRoute
   AuthenticatedInvoiceIdRoute: typeof AuthenticatedInvoiceIdRoute
+  AuthenticatedServiceInvoiceIdRoute: typeof AuthenticatedServiceInvoiceIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEmiRoute: AuthenticatedEmiRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
@@ -304,6 +346,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStockRoute: AuthenticatedStockRoute,
   AuthenticatedTechniciansRoute: AuthenticatedTechniciansRoute,
   AuthenticatedInvoiceIdRoute: AuthenticatedInvoiceIdRoute,
+  AuthenticatedServiceInvoiceIdRoute: AuthenticatedServiceInvoiceIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -318,13 +361,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, PageHeader } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink } from "@/lib/app-utils";
-import { AlertTriangle, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from "recharts";
+import { fmtMoney, upper, useShop, waLink } from "@/lib/app-utils";
+import { AlertTriangle, Droplet, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle } from "lucide-react";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from "recharts";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -13,6 +13,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
+  const { data: shop } = useShop();
+
   const { data: stats } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
