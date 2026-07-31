@@ -26,14 +26,10 @@ function SalesPage() {
     queryKey: ["sales"],
     queryFn: async () => (await supabase.from("sales").select("*").order("sale_date", { ascending: false }).limit(50)).data ?? [],
   });
-  const { data: products = [] } = useQuery({
-    queryKey: ["products"],
-    queryFn: async () => (await supabase.from("products").select("*").order("model")).data ?? [],
-  });
 
   return (
     <div>
-      <PageHeader title="Sales" description="Record sales in three modes" />
+      <PageHeader title="Sales" description="Record manual and office sales" />
 
       <div className="mb-4 flex gap-1 rounded-xl glass p-1">
         {TABS.map(t => (
@@ -44,10 +40,10 @@ function SalesPage() {
       </div>
 
       <Card className="mb-6">
-        {tab === "stock" ? <StockSaleForm products={products} onDone={() => qc.invalidateQueries()} />
-          : tab === "manual" ? <ManualSaleForm source="manual" onDone={() => qc.invalidateQueries()} />
+        {tab === "manual" ? <ManualSaleForm source="manual" onDone={() => qc.invalidateQueries()} />
           : <ManualSaleForm source="office" onDone={() => qc.invalidateQueries()} />}
       </Card>
+
 
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Recent sales</h3>
       {sales.length === 0 ? <Card><Empty text="No sales yet" /></Card> : (
