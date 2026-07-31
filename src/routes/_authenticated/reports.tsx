@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, PageHeader, Table, Td, Th } from "@/components/ui-kit";
 import { fmtMoney } from "@/lib/app-utils";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+
+const PALETTE = ["#38bdf8", "#a78bfa", "#f472b6", "#facc15", "#34d399", "#fb923c", "#60a5fa", "#f87171", "#2dd4bf", "#c084fc", "#4ade80", "#fbbf24"];
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({ meta: [{ title: "Reports — STOCKERZ RO" }] }),
@@ -34,7 +36,7 @@ function Page() {
         serviceDaily[s.service_date] = (serviceDaily[s.service_date] ?? 0) + 1;
         serviceMonthly[s.service_date.slice(0, 7)] = (serviceMonthly[s.service_date.slice(0, 7)] ?? 0) + 1;
       }
-      const lastDays = Object.entries(daily).sort().slice(-14).map(([d, v]) => ({ d: d.slice(5), v }));
+      const lastDays = Object.entries(daily).sort().slice(-7).map(([d, v]) => ({ d: d.slice(5), v }));
       const lastMonths = Object.entries(monthly).sort().slice(-6).map(([m, v]) => ({ m, v }));
       const serviceMonths = Object.entries(serviceMonthly).sort().slice(-6).map(([m, v]) => ({ m, v }));
       return { lastDays, lastMonths, serviceMonths, products: products.data ?? [] };
@@ -47,7 +49,7 @@ function Page() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Daily sales (last 14 days)</h3>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Daily sales (last 7 days)</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data?.lastDays ?? []}>
@@ -55,7 +57,9 @@ function Page() {
                 <XAxis dataKey="d" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-glass-border)" }} />
-                <Bar dataKey="v" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="v" radius={[4, 4, 0, 0]}>
+                  {(data?.lastDays ?? []).map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -69,7 +73,9 @@ function Page() {
                 <XAxis dataKey="m" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-glass-border)" }} />
-                <Bar dataKey="v" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="v" radius={[4, 4, 0, 0]}>
+                  {(data?.lastMonths ?? []).map((_, i) => <Cell key={i} fill={PALETTE[(i + 3) % PALETTE.length]} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -83,7 +89,9 @@ function Page() {
                 <XAxis dataKey="m" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-glass-border)" }} />
-                <Bar dataKey="v" fill="var(--color-success)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="v" radius={[4, 4, 0, 0]}>
+                  {(data?.serviceMonths ?? []).map((_, i) => <Cell key={i} fill={PALETTE[(i + 6) % PALETTE.length]} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
