@@ -36,9 +36,9 @@ function Dashboard() {
       const todaySales = total(salesRows.filter(r => r.sale_date === today));
       const monthSales = total(salesRows.filter(r => r.sale_date >= monthStartStr));
 
-      // daily buckets last 14 days
+      // daily buckets last 7 days
       const byDay: Record<string, number> = {};
-      for (let i = 13; i >= 0; i--) {
+      for (let i = 6; i >= 0; i--) {
         const d = new Date(Date.now() - i * 86400000).toISOString().slice(0,10);
         byDay[d] = 0;
       }
@@ -63,16 +63,11 @@ function Dashboard() {
   return (
     <div>
       <div className="mb-6 flex items-center gap-3 rounded-2xl glass p-4">
-        {shop?.logo_url ? (
-          <img src={shop.logo_url} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
-        ) : (
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary">
-            <Droplet className="h-6 w-6" />
-          </div>
-        )}
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary">
+          <Droplet className="h-6 w-6" />
+        </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Shop</div>
-          <h1 className="truncate text-lg font-bold uppercase-data md:text-xl">{upper(shop?.name) || "MY SHOP"}</h1>
+          <h1 className="truncate text-lg font-bold tracking-tight md:text-xl">STOCKERZ RO</h1>
         </div>
       </div>
 
@@ -88,7 +83,7 @@ function Dashboard() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Sales — Last 14 days</h3>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Sales — Last 7 days</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats?.chart ?? []}>
