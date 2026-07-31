@@ -13,14 +13,13 @@ export const Route = createFileRoute("/_authenticated/sales")({
 });
 
 const TABS = [
-  { k: "stock", label: "From Stock" },
   { k: "manual", label: "Manual Entry" },
   { k: "office", label: "Office Sales" },
 ] as const;
 type Tab = typeof TABS[number]["k"];
 
 function SalesPage() {
-  const [tab, setTab] = useState<Tab>("stock");
+  const [tab, setTab] = useState<Tab>("manual");
   const qc = useQueryClient();
 
   const { data: sales = [] } = useQuery({
