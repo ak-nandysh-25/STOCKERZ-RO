@@ -18,7 +18,7 @@ function Page() {
     queryFn: async () => {
       const [sales, services, products] = await Promise.all([
         supabase.from("sales").select("sale_date, price, qty, source"),
-        supabase.from("services").select("service_date, total"),
+        supabase.from("services").select("service_date"),
         supabase.from("products").select("*"),
       ]);
       const salesRows = sales.data ?? [];
