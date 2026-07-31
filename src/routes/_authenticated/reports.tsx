@@ -57,7 +57,9 @@ function Page() {
                 <XAxis dataKey="d" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-glass-border)" }} />
-                <Bar dataKey="v" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="v" radius={[4, 4, 0, 0]}>
+                  {(data?.lastDays ?? []).map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -71,7 +73,9 @@ function Page() {
                 <XAxis dataKey="m" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-glass-border)" }} />
-                <Bar dataKey="v" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="v" radius={[4, 4, 0, 0]}>
+                  {(data?.lastMonths ?? []).map((_, i) => <Cell key={i} fill={PALETTE[(i + 3) % PALETTE.length]} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -85,7 +89,9 @@ function Page() {
                 <XAxis dataKey="m" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-glass-border)" }} />
-                <Bar dataKey="v" fill="var(--color-success)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="v" radius={[4, 4, 0, 0]}>
+                  {(data?.serviceMonths ?? []).map((_, i) => <Cell key={i} fill={PALETTE[(i + 6) % PALETTE.length]} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
