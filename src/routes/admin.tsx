@@ -36,16 +36,18 @@ function AdminShops() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-shops"],
     queryFn: async () => {
-      const [shops, sales, services, products] = await Promise.all([
+      const [shops, sales, services, serviceItems, products] = await Promise.all([
         supabase.from("shops").select("*").order("created_at", { ascending: false }),
         supabase.from("sales").select("shop_id, qty, price"),
-        supabase.from("services").select("shop_id, total"),
+        supabase.from("services").select("shop_id"),
+        supabase.from("service_items").select("shop_id, price"),
         supabase.from("products").select("shop_id, qty, low_stock_threshold"),
       ]);
       return {
         shops: shops.data ?? [],
         sales: sales.data ?? [],
         services: services.data ?? [],
+        serviceItems: serviceItems.data ?? [],
         products: products.data ?? [],
       };
     },
@@ -58,12 +60,13 @@ function AdminShops() {
       .map((s) => {
         const sales = data.sales.filter((r) => r.shop_id === s.id);
         const services = data.services.filter((r) => r.shop_id === s.id);
+        const items = data.serviceItems.filter((r) => r.shop_id === s.id);
         const products = data.products.filter((r) => r.shop_id === s.id);
         return {
           ...s,
           salesTotal: sales.reduce((a, r) => a + Number(r.price) * Number(r.qty), 0),
           salesCount: sales.length,
-          serviceTotal: services.reduce((a, r) => a + Number(r.total ?? 0), 0),
+          serviceTotal: items.reduce((a, r) => a + Number(r.price ?? 0), 0),
           serviceCount: services.length,
           productCount: products.length,
           lowStock: products.filter((p) => Number(p.qty) <= Number(p.low_stock_threshold)).length,
