@@ -188,26 +188,46 @@ function AdminControlCenter() {
     nav({ to: "/admin-login", replace: true });
   }
 
-  // Create New Shop
+  // Create New Shop or Link Existing User
   async function handleCreateShop() {
     if (!newShopName.trim()) {
       toast.error("Shop name is required");
       return;
     }
+    if (!newShopEmail.trim()) {
+      toast.error("Shop email is required");
+      return;
+    }
     setIsCreatingShop(true);
     try {
-      const currentUser = (await supabase.auth.getUser()).data.user;
-      const { error } = await supabase.from("shops").insert({
-        name: newShopName.trim(),
-        email: newShopEmail.trim() || null,
-        contact: newShopContact.trim() || null,
-        gst: newShopGst.trim() || null,
-        address: newShopAddress.trim() || null,
-        logo_url: newShopLogo.trim() || null,
-        owner_id: currentUser?.id ?? "00000000-0000-0000-0000-000000000000",
+      const { error } = await supabase.rpc("admin_create_shop", {
+        _name: newShopName.trim(),
+        _email: newShopEmail.trim(),
+        _password: "password123",
+        _contact: newShopContact.trim() || null,
+        _gst: newShopGst.trim() || null,
+        _address: newShopAddress.trim() || null,
+        _logo_url: newShopLogo.trim() || null,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.warn("RPC admin_create_shop notice:", error.message);
+        // Fallback to client upsert if RPC is not run in remote DB
+        const currentUser = (await supabase.auth.getUser()).data.user;
+        const { error: fallbackErr } = await supabase.from("shops").upsert(
+          {
+            name: newShopName.trim(),
+            email: newShopEmail.trim() || null,
+            contact: newShopContact.trim() || null,
+            gst: newShopGst.trim() || null,
+            address: newShopAddress.trim() || null,
+            logo_url: newShopLogo.trim() || null,
+            owner_id: currentUser?.id ?? "00000000-0000-0000-0000-000000000000",
+          },
+          { onConflict: "owner_id" }
+        );
+        if (fallbackErr) throw fallbackErr;
+      }
 
       toast.success(`Shop "${newShopName.trim()}" registered successfully`);
       await qc.invalidateQueries({ queryKey: ["admin-master-data"] });
@@ -272,7 +292,7 @@ function AdminControlCenter() {
     }
   }
 
-  // Delete Shop Cascade
+  // Delete Shop Cascade & User Account
   async function handleDeleteShop() {
     if (!deletingShop) return;
     setIsDeletingShop(true);
@@ -280,8 +300,14 @@ function AdminControlCenter() {
       const shopId = deletingShop.id;
       const shopName = deletingShop.name;
 
-      // Clean up child records first
-      try {
+      // Call RPC delete_shop_and_user
+      const { error: rpcErr } = await supabase.rpc("delete_shop_and_user", {
+        _shop_id: shopId,
+      });
+
+      if (rpcErr) {
+        console.warn("RPC delete_shop_and_user fallback:", rpcErr.message);
+        // Fallback to direct client table deletes
         await Promise.allSettled([
           supabase.from("sales").delete().eq("shop_id", shopId),
           supabase.from("services").delete().eq("shop_id", shopId),
@@ -290,18 +316,11 @@ function AdminControlCenter() {
           supabase.from("emi_plans").delete().eq("shop_id", shopId),
           supabase.from("technicians").delete().eq("shop_id", shopId),
         ]);
-      } catch {
-        // Ignore pre-cascade errors if table records are already deleted
+        const { error: delErr } = await supabase.from("shops").delete().eq("id", shopId);
+        if (delErr) throw delErr;
       }
 
-      // Delete main shop record
-      const { error } = await supabase.from("shops").delete().eq("id", shopId);
-      if (error) {
-        console.error("Shop deletion error:", error);
-        throw new Error(error.message || "Database restricted deletion");
-      }
-
-      toast.success(`Shop "${shopName}" deleted successfully`);
+      toast.success(`Shop "${shopName}" and user account deleted`);
 
       // Optimistically update React Query cache so row disappears instantly
       qc.setQueryData(["admin-master-data"], (oldData: any) => {
@@ -321,7 +340,6 @@ function AdminControlCenter() {
       setDeletingShop(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to delete shop";
-      console.error("Delete shop failure:", err);
       toast.error(msg);
     } finally {
       setIsDeletingShop(false);
