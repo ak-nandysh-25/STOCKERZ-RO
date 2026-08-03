@@ -14,8 +14,6 @@ import {
   Boxes,
   Sparkles,
   Zap,
-  Check,
-  Store,
   ChevronRight,
   TrendingUp,
   Bell,
@@ -80,21 +78,12 @@ function Landing() {
             <a href="#modules" className="transition hover:text-foreground">
               Modules
             </a>
-            <a href="#pricing" className="transition hover:text-foreground">
-              Pricing
-            </a>
             <a href="#faq" className="transition hover:text-foreground">
               FAQ
             </a>
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link
-              to="/admin-login"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition"
-            >
-              <Store className="h-3.5 w-3.5" /> Admin Portal
-            </Link>
             <Link
               to="/auth"
               className="rounded-xl glass px-4 py-2 text-sm font-medium text-foreground transition hover:bg-white/10 hover:border-white/20"
@@ -176,9 +165,6 @@ function Landing() {
               <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
               <div className="h-3 w-3 rounded-full bg-green-500/80" />
               <span className="ml-3 text-xs font-mono text-muted-foreground">stockerz-ro.app/dashboard</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" /> Live Shop Connected
             </div>
           </div>
 
@@ -446,129 +432,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="mx-auto max-w-7xl px-6 py-20 border-t border-white/5 text-center">
-        <span className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Transparent Pricing</span>
-        <h2 className="mt-3 text-3xl font-black md:text-5xl">Simple plans for shops of all sizes</h2>
-        <p className="mt-4 text-muted-foreground max-w-xl mx-auto text-base">
-          No hidden fees or per-user penalties. Choose the plan that fits your showroom.
-        </p>
-
-        <div className="mt-16 grid gap-8 lg:grid-cols-3 max-w-5xl mx-auto">
-          {/* Starter Plan */}
-          <div className="rounded-3xl glass p-8 text-left border border-white/10 flex flex-col justify-between">
-            <div>
-              <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Single Outlet</span>
-              <h3 className="mt-2 text-2xl font-extrabold">Starter Shop</h3>
-              <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-4xl font-black">Free</span>
-                <span className="text-xs text-muted-foreground">/ forever</span>
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">Ideal for new single-person RO service technicians starting out.</p>
-
-              <ul className="mt-8 space-y-3 text-xs">
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-primary" /> Up to 50 Active Customers
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-primary" /> Stock Inventory Management
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-primary" /> 3-Month Filter Reminders
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground opacity-60">
-                  <Check className="h-4 w-4 text-muted-foreground" /> GST Invoicing & Thermal Receipts
-                </li>
-              </ul>
-            </div>
-
-            <Link
-              to="/auth"
-              className="mt-8 block w-full text-center rounded-xl glass px-4 py-3 text-sm font-bold transition hover:bg-white/10"
-            >
-              Get Started Free
-            </Link>
-          </div>
-
-          {/* Pro Showroom Plan - Featured */}
-          <div className="relative rounded-3xl glass p-8 text-left border-2 border-primary shadow-2xl shadow-primary/20 flex flex-col justify-between bg-primary/5">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-[11px] font-black uppercase tracking-wider text-primary-foreground shadow-md">
-              Most Popular
-            </div>
-
-            <div>
-              <span className="text-sm font-bold text-primary uppercase tracking-wider">Showroom OS</span>
-              <h3 className="mt-2 text-2xl font-extrabold">Pro Showroom</h3>
-              <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-4xl font-black">₹499</span>
-                <span className="text-xs text-muted-foreground">/ month</span>
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">For established RO water purifier shops & service outlets.</p>
-
-              <ul className="mt-8 space-y-3 text-xs">
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-primary" /> Unlimited Customers & Stock Items
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-primary" /> Automated Filter Replacement Reminders
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-primary" /> Custom EMI Plans & Dues Tracker
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-primary" /> GST PDF & Thermal Bluetooth Invoices
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-primary" /> Field Technician Ticket Dispatch
-                </li>
-              </ul>
-            </div>
-
-            <Link
-              to="/auth"
-              className="mt-8 block w-full text-center rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition hover:brightness-110"
-            >
-              Start 14-Day Free Trial
-            </Link>
-          </div>
-
-          {/* Enterprise Plan */}
-          <div className="rounded-3xl glass p-8 text-left border border-white/10 flex flex-col justify-between">
-            <div>
-              <span className="text-sm font-bold text-accent uppercase tracking-wider">Multi-Branch</span>
-              <h3 className="mt-2 text-2xl font-extrabold">Enterprise Chain</h3>
-              <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-4xl font-black">₹999</span>
-                <span className="text-xs text-muted-foreground">/ month</span>
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">For RO distributors, franchises & multi-location chains.</p>
-
-              <ul className="mt-8 space-y-3 text-xs">
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-accent" /> Multi-Branch Shop Management
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-accent" /> Role-based Admin & Staff Access
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-accent" /> Advanced Profit & Tax Reports
-                </li>
-                <li className="flex items-center gap-2 text-foreground">
-                  <Check className="h-4 w-4 text-accent" /> Priority Phone & WhatsApp Support
-                </li>
-              </ul>
-            </div>
-
-            <Link
-              to="/auth"
-              className="mt-8 block w-full text-center rounded-xl glass px-4 py-3 text-sm font-bold transition hover:bg-white/10"
-            >
-              Contact Sales
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* FAQ Section */}
       <section id="faq" className="mx-auto max-w-4xl px-6 py-20 border-t border-white/5">
         <div className="text-center mb-12">
@@ -662,9 +525,6 @@ function Landing() {
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
             <Link to="/auth" className="hover:text-foreground transition">
               Sign In
-            </Link>
-            <Link to="/admin-login" className="hover:text-foreground transition">
-              Admin Portal
             </Link>
             <a href="#privacy" className="hover:text-foreground transition">
               Privacy Policy
