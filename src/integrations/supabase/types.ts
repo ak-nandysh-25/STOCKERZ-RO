@@ -364,7 +364,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_shop: {
+        Args: {
+          _name: string
+          _email: string
+          _password?: string
+          _contact?: string | null
+          _gst?: string | null
+          _address?: string | null
+          _logo_url?: string | null
+        }
+        Returns: string
+      }
       current_shop_id: { Args: never; Returns: string }
+      delete_shop_and_user: {
+        Args: {
+          _shop_id: string
+        }
+        Returns: void
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

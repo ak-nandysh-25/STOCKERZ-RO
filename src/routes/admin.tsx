@@ -200,7 +200,7 @@ function AdminControlCenter() {
     }
     setIsCreatingShop(true);
     try {
-      const { error } = await supabase.rpc("admin_create_shop", {
+      const { error } = await (supabase.rpc as any)("admin_create_shop", {
         _name: newShopName.trim(),
         _email: newShopEmail.trim(),
         _password: "password123",
@@ -301,7 +301,7 @@ function AdminControlCenter() {
       const shopName = deletingShop.name;
 
       // Call RPC delete_shop_and_user
-      const { error: rpcErr } = await supabase.rpc("delete_shop_and_user", {
+      const { error: rpcErr } = await (supabase.rpc as any)("delete_shop_and_user", {
         _shop_id: shopId,
       });
 
