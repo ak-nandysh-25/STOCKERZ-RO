@@ -151,7 +151,7 @@ function AdminControlCenter() {
     return data.sales.filter((s) => {
       if (!term) return true;
       const shopName = data.shops.find((shp) => shp.id === s.shop_id)?.name ?? "";
-      return [s.model, s.customer_name, s.phone, s.payment_method, shopName]
+      return [s.product_name, s.customer_name, s.phone, s.source, shopName]
         .some((v) => (v ?? "").toLowerCase().includes(term));
     });
   }, [data, q]);
@@ -304,8 +304,8 @@ function AdminControlCenter() {
   }
 
   // Delete Individual Sale Record (Admin Action)
-  async function handleDeleteSale(saleId: string, model: string) {
-    if (!confirm(`Are you sure you want to delete sale record for "${model}"?`)) return;
+  async function handleDeleteSale(saleId: string, productName: string) {
+    if (!confirm(`Are you sure you want to delete sale record for "${productName}"?`)) return;
     try {
       const { error } = await supabase.from("sales").delete().eq("id", saleId);
       if (error) throw error;
@@ -573,14 +573,14 @@ function AdminControlCenter() {
                           <div className="font-medium">{sale.customer_name}</div>
                           <div className="text-xs text-muted-foreground">{sale.phone ?? "—"}</div>
                         </Td>
-                        <Td className="font-medium">{sale.model}</Td>
+                        <Td className="font-medium">{sale.product_name}</Td>
                         <Td>{sale.qty}</Td>
                         <Td className="font-bold text-emerald-400">{fmtMoney(Number(sale.price) * Number(sale.qty))}</Td>
-                        <Td className="uppercase text-xs font-semibold">{sale.payment_method ?? "CASH"}</Td>
+                        <Td className="uppercase text-xs font-semibold">{sale.source ?? "CASH"}</Td>
                         <Td>{sale.sale_date ? sale.sale_date.slice(0, 10) : sale.created_at.slice(0, 10)}</Td>
                         <Td className="text-right">
                           <button
-                            onClick={() => handleDeleteSale(sale.id, sale.model)}
+                            onClick={() => handleDeleteSale(sale.id, sale.product_name)}
                             className="p-1.5 rounded-lg text-destructive hover:bg-destructive/20"
                             title="Delete sale entry"
                           >
