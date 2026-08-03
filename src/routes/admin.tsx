@@ -278,25 +278,50 @@ function AdminControlCenter() {
     setIsDeletingShop(true);
     try {
       const shopId = deletingShop.id;
+      const shopName = deletingShop.name;
 
-      // Delete child records first to satisfy FK constraints
-      await Promise.all([
-        supabase.from("sales").delete().eq("shop_id", shopId),
-        supabase.from("services").delete().eq("shop_id", shopId),
-        supabase.from("service_items").delete().eq("shop_id", shopId),
-        supabase.from("products").delete().eq("shop_id", shopId),
-        supabase.from("emi_plans").delete().eq("shop_id", shopId),
-        supabase.from("technicians").delete().eq("shop_id", shopId),
-      ]);
+      // Clean up child records first
+      try {
+        await Promise.allSettled([
+          supabase.from("sales").delete().eq("shop_id", shopId),
+          supabase.from("services").delete().eq("shop_id", shopId),
+          supabase.from("service_items").delete().eq("shop_id", shopId),
+          supabase.from("products").delete().eq("shop_id", shopId),
+          supabase.from("emi_plans").delete().eq("shop_id", shopId),
+          supabase.from("technicians").delete().eq("shop_id", shopId),
+        ]);
+      } catch {
+        // Ignore pre-cascade errors if table records are already deleted
+      }
 
+      // Delete main shop record
       const { error } = await supabase.from("shops").delete().eq("id", shopId);
-      if (error) throw error;
+      if (error) {
+        console.error("Shop deletion error:", error);
+        throw new Error(error.message || "Database restricted deletion");
+      }
 
-      toast.success(`Shop "${deletingShop.name}" and all records deleted`);
+      toast.success(`Shop "${shopName}" deleted successfully`);
+
+      // Optimistically update React Query cache so row disappears instantly
+      qc.setQueryData(["admin-master-data"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          shops: (oldData.shops ?? []).filter((s: any) => s.id !== shopId),
+          sales: (oldData.sales ?? []).filter((s: any) => s.shop_id !== shopId),
+          services: (oldData.services ?? []).filter((s: any) => s.shop_id !== shopId),
+          serviceItems: (oldData.serviceItems ?? []).filter((s: any) => s.shop_id !== shopId),
+          products: (oldData.products ?? []).filter((p: any) => p.shop_id !== shopId),
+          technicians: (oldData.technicians ?? []).filter((t: any) => t.shop_id !== shopId),
+        };
+      });
+
       await qc.invalidateQueries({ queryKey: ["admin-master-data"] });
       setDeletingShop(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to delete shop";
+      console.error("Delete shop failure:", err);
       toast.error(msg);
     } finally {
       setIsDeletingShop(false);
