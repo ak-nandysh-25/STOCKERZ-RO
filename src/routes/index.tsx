@@ -62,9 +62,6 @@ function Landing() {
               <span className="text-xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 STOCKERZ <span className="text-primary">RO</span>
               </span>
-              <span className="hidden sm:inline-block ml-2 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                v2.0 OS
-              </span>
             </div>
           </div>
 
