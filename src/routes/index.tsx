@@ -83,12 +83,14 @@ function Landing() {
           <div className="flex items-center gap-3">
             <Link
               to="/auth"
+              search={{ mode: "login" }}
               className="rounded-xl glass px-4 py-2 text-sm font-medium text-foreground transition hover:bg-white/10 hover:border-white/20"
             >
               Sign In
             </Link>
             <Link
               to="/auth"
+              search={{ mode: "signup" }}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               Get Started <ArrowRight className="h-4 w-4" />
@@ -119,6 +121,7 @@ function Landing() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Link
             to="/auth"
+            search={{ mode: "signup" }}
             className="inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-primary/30 transition hover:scale-[1.02] hover:brightness-110 active:scale-95"
           >
             Launch Your Shop Free <ArrowRight className="h-5 w-5" />
@@ -341,6 +344,7 @@ function Landing() {
             <div className="mt-8">
               <Link
                 to="/auth"
+                search={{ mode: "signup" }}
                 className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition"
               >
                 Try the dashboard live <ChevronRight className="h-4 w-4" />
@@ -497,6 +501,7 @@ function Landing() {
           <div className="mt-8 flex justify-center gap-4">
             <Link
               to="/auth"
+              search={{ mode: "signup" }}
               className="inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-primary/30 transition hover:brightness-110 hover:scale-[1.02]"
             >
               Start Free Trial Now <ArrowRight className="h-5 w-5" />
@@ -520,7 +525,7 @@ function Landing() {
           </p>
 
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
-            <Link to="/auth" className="hover:text-foreground transition">
+            <Link to="/auth" search={{ mode: "login" }} className="hover:text-foreground transition">
               Sign In
             </Link>
             <a href="#privacy" className="hover:text-foreground transition">

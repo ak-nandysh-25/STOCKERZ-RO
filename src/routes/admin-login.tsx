@@ -115,9 +115,12 @@ function AdminLogin() {
           </button>
         </form>
 
-        <div className="mt-6 text-sm">
-          <Link to="/auth" className="text-muted-foreground hover:text-foreground">
+        <div className="mt-6 flex items-center justify-between text-sm">
+          <Link to="/auth" search={{ mode: "login" }} className="text-muted-foreground hover:text-foreground">
             Not an admin? <span className="text-foreground">Shop sign in</span>
+          </Link>
+          <Link to="/auth" search={{ mode: "forgot" }} className="text-xs text-muted-foreground hover:text-primary transition">
+            Forgot password?
           </Link>
         </div>
       </div>

@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Droplet, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Droplet, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const searchSchema = z.object({ mode: z.enum(["login", "signup"]).optional() });
+const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -27,12 +27,19 @@ const emptyShop = { name: "", contact: "", gst: "", address: "" };
 function AuthPage() {
   const nav = useNavigate();
   const search = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState<"login" | "signup">(search.mode ?? "login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">(search.mode ?? "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [shop, setShop] = useState(emptyShop);
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  useEffect(() => {
+    if (search.mode) {
+      setMode(search.mode);
+    }
+  }, [search.mode]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -44,6 +51,17 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setResetSent(true);
+        toast.success("Password reset link sent to your email!");
+        setLoading(false);
+        return;
+      }
+
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -87,10 +105,22 @@ function AuthPage() {
           <span className="font-bold tracking-tight">STOCKERZ RO</span>
         </Link>
 
-        <h1 className="text-2xl font-bold">{mode === "login" ? "Sign in" : "Create your shop"}</h1>
+        <h1 className="text-2xl font-bold">
+          {mode === "login" ? "Sign in" : mode === "signup" ? "Create your shop" : "Reset password"}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "login" ? "Use your email and password" : "Add your shop profile details to get started"}
+          {mode === "login"
+            ? "Use your email and password"
+            : mode === "signup"
+            ? "Add your shop profile details to get started"
+            : "Enter your registered email to receive a password reset link"}
         </p>
+
+        {mode === "forgot" && resetSent && (
+          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+            Reset link sent! Check your inbox for further instructions.
+          </div>
+        )}
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           {mode === "signup" && (
@@ -143,26 +173,44 @@ function AuthPage() {
             />
           </Field>
 
-          <Field label="Password">
-            <div className="relative">
-              <input
-                type={showPw ? "text" : "password"}
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                aria-label={showPw ? "Hide password" : "Show password"}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </Field>
+          {mode !== "forgot" && (
+            <Field
+              label="Password"
+              action={
+                mode === "login" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setResetSent(false);
+                    }}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                ) : undefined
+              }
+            >
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? "Hide password" : "Show password"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </Field>
+          )}
 
           <button
             type="submit"
@@ -170,18 +218,42 @@ function AuthPage() {
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "login" ? "Sign in" : "Create shop"}
+            {mode === "login"
+              ? "Sign in"
+              : mode === "signup"
+              ? "Create shop"
+              : resetSent
+              ? "Resend reset link"
+              : "Send reset link"}
           </button>
         </form>
 
         <div className="mt-6 text-sm">
           {mode === "login" ? (
-            <button onClick={() => setMode("signup")} className="text-muted-foreground hover:text-foreground">
-              Need an account? <span className="text-foreground">Create shop</span>
+            <div className="flex items-center justify-between">
+              <button onClick={() => setMode("signup")} className="text-muted-foreground hover:text-foreground">
+                Need an account? <span className="text-foreground font-semibold">Create shop</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMode("forgot");
+                  setResetSent(false);
+                }}
+                className="text-xs text-muted-foreground hover:text-primary transition"
+              >
+                Forgot password?
+              </button>
+            </div>
+          ) : mode === "signup" ? (
+            <button onClick={() => setMode("login")} className="text-muted-foreground hover:text-foreground">
+              Already have a shop? <span className="text-foreground font-semibold">Sign in</span>
             </button>
           ) : (
-            <button onClick={() => setMode("login")} className="text-muted-foreground hover:text-foreground">
-              Already have a shop? <span className="text-foreground">Sign in</span>
+            <button
+              onClick={() => setMode("login")}
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to <span className="text-foreground font-semibold">Sign in</span>
             </button>
           )}
         </div>
@@ -190,11 +262,23 @@ function AuthPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  action,
+  children,
+}: {
+  label: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="block text-xs font-medium text-muted-foreground">{label}</span>
+        {action}
+      </div>
       {children}
     </label>
   );
 }
+
