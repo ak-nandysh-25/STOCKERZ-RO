@@ -66,30 +66,21 @@ function AuthPage() {
   }, [search.mode]);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) nav({ to: "/dashboard" });
-    });
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) nav({ to: "/dashboard" });
     });
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
   }, [nav]);
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
         },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
     } catch (err: any) {
       toast.error(err.message ?? "Google sign in failed");
       setGoogleLoading(false);

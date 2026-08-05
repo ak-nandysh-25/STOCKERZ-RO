@@ -61,16 +61,13 @@ function AdminLogin() {
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/admin`,
         },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
     } catch (err: any) {
       toast.error(err.message ?? "Google sign in failed");
       setGoogleLoading(false);
