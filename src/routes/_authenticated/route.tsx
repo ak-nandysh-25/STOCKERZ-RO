@@ -49,12 +49,38 @@ function Shell() {
   const loc = useLocation();
   const [open, setOpen] = useState(false);
 
-  // Load shop profile for active user
+  // Load shop profile for active user (auto-creating if missing, e.g. for Google OAuth)
   const { data: shop } = useQuery({
     queryKey: ["shop"],
     queryFn: async () => {
-      const { data } = await supabase.from("shops").select("*").maybeSingle();
-      return data;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: existingShop } = await supabase.from("shops").select("*").maybeSingle();
+      if (existingShop) return existingShop;
+
+      // Auto-create shop if missing for this user
+      const defaultName = user.user_metadata?.full_name
+        ? `${user.user_metadata.full_name.toUpperCase()}'S SHOP`
+        : "MY SHOP";
+
+      const { data: newShop, error } = await supabase
+        .from("shops")
+        .insert({
+          owner_id: user.id,
+          name: defaultName,
+          email: user.email ?? null,
+        })
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        console.warn("Auto shop creation notice:", error.message);
+        // Fallback fetch in case of race condition
+        const { data: retryShop } = await supabase.from("shops").select("*").maybeSingle();
+        return retryShop;
+      }
+      return newShop;
     },
   });
 

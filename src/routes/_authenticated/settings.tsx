@@ -36,18 +36,27 @@ function Page() {
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("shops")
-        .update({
-          name: f.name.toUpperCase(),
-          contact: f.contact,
-          email: f.email,
-          gst: f.gst.toUpperCase(),
-          address: f.address.toUpperCase(),
-          logo_url: f.logo_url || null,
-        })
-        .eq("id", shop!.id);
-      if (error) throw error;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const payload = {
+        owner_id: user.id,
+        name: f.name.toUpperCase(),
+        contact: f.contact,
+        email: f.email,
+        gst: f.gst.toUpperCase(),
+        address: f.address.toUpperCase(),
+        logo_url: f.logo_url || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (shop?.id) {
+        const { error } = await supabase.from("shops").update(payload).eq("id", shop.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("shops").upsert(payload, { onConflict: "owner_id" });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Shop profile updated");
@@ -64,12 +73,16 @@ function Page() {
 
     setUploading(true);
 
-    const convertToBase64 = () => {
+    const convertToBase64 = (isFallback = true) => {
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === "string") {
           setF((prev) => ({ ...prev, logo_url: reader.result as string }));
-          toast.success("Logo uploaded successfully");
+          if (isFallback) {
+            toast.info("Logo stored using image fallback. Run the migration script in Supabase to enable remote bucket storage.");
+          } else {
+            toast.success("Logo uploaded successfully");
+          }
         }
         setUploading(false);
       };
@@ -85,12 +98,21 @@ function Page() {
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
       const path = `${user?.id ?? "shop"}/${Date.now()}-${sanitizedName}`;
 
-      const { error } = await supabase.storage.from("shop-logos").upload(path, file, { upsert: true });
+      let { error } = await supabase.storage.from("shop-logos").upload(path, file, { upsert: true });
+
+      if (error && (error.message.includes("Bucket not found") || (error as any).statusCode === "404")) {
+        try {
+          await supabase.storage.createBucket("shop-logos", { public: true });
+          const retry = await supabase.storage.from("shop-logos").upload(path, file, { upsert: true });
+          error = retry.error;
+        } catch {
+          // ignore bucket creation error and use fallback
+        }
+      }
 
       if (error) {
-        console.warn("Supabase storage upload notice:", error.message);
-        // Fallback to base64 data URL if storage bucket is missing or unconfigured
-        convertToBase64();
+        console.warn("Supabase storage notice:", error.message);
+        convertToBase64(true);
         return;
       }
 
@@ -99,11 +121,11 @@ function Page() {
         setF((prev) => ({ ...prev, logo_url: data.publicUrl }));
         toast.success("Logo uploaded successfully");
       } else {
-        convertToBase64();
+        convertToBase64(true);
       }
     } catch (err: any) {
       console.warn("Storage exception, using base64 fallback:", err);
-      convertToBase64();
+      convertToBase64(true);
     } finally {
       setUploading(false);
     }
