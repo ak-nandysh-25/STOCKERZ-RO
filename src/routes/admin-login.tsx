@@ -51,12 +51,20 @@ function AdminLogin() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) return;
-      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
+    const checkAdmin = async (userId: string) => {
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
       if (isAdmin) nav({ to: "/admin" });
-    })();
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) checkAdmin(data.session.user.id);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) checkAdmin(session.user.id);
+    });
+
+    return () => subscription.unsubscribe();
   }, [nav]);
 
   async function handleGoogleSignIn() {
@@ -65,12 +73,21 @@ function AdminLogin() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/admin`,
+          redirectTo: `${window.location.origin}/admin-login`,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
         },
       });
       if (error) throw error;
     } catch (err: any) {
-      toast.error(err.message ?? "Google sign in failed");
+      console.error("Admin Google sign in error:", err);
+      toast.error(
+        err.message?.includes("provider is not enabled")
+          ? "Google sign-in is not enabled in your Supabase project. Enable it in Supabase Console -> Authentication -> Providers -> Google."
+          : err.message ?? "Google sign in failed"
+      );
       setGoogleLoading(false);
     }
   }

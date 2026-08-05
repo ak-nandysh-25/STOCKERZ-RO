@@ -70,6 +70,14 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) nav({ to: "/dashboard" });
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        nav({ to: "/dashboard" });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [nav]);
 
   async function handleGoogleSignIn() {
@@ -78,12 +86,21 @@ function AuthPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth`,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
         },
       });
       if (error) throw error;
     } catch (err: any) {
-      toast.error(err.message ?? "Google sign in failed");
+      console.error("Google sign in error:", err);
+      toast.error(
+        err.message?.includes("provider is not enabled")
+          ? "Google sign-in is not enabled in your Supabase project. Enable it in Supabase Console -> Authentication -> Providers -> Google."
+          : err.message ?? "Google sign in failed"
+      );
       setGoogleLoading(false);
     }
   }

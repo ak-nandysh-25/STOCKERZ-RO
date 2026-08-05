@@ -24,9 +24,28 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+    // If URL has OAuth callback hash or query code, give Supabase SDK time to process session
+    if (typeof window !== "undefined") {
+      const hasHash = window.location.hash.includes("access_token");
+      const hasCode = window.location.search.includes("code=");
+      if (hasHash || hasCode) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session?.user) {
+          return { user: sessionData.session.user };
+        }
+      }
+    }
+
+    const { data } = await supabase.auth.getUser();
+    if (data?.user) return { user: data.user };
+
+    // Fallback check for active session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session?.user) {
+      return { user: sessionData.session.user };
+    }
+
+    throw redirect({ to: "/auth" });
   },
   component: Shell,
 });
