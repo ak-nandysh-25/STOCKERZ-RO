@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
@@ -101,11 +102,14 @@ function AdminLogin() {
   return (
     <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10">
       <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
-        <div className="mb-6 flex items-center gap-2">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent/20 text-accent">
-            <ShieldCheck className="h-5 w-5" />
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent/20 text-accent">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <span className="font-bold tracking-tight">STOCKERZ RO — ADMIN</span>
           </div>
-          <span className="font-bold tracking-tight">STOCKERZ RO — ADMIN</span>
+          <ThemeToggle />
         </div>
 
         <h1 className="text-2xl font-bold">Admin sign in</h1>

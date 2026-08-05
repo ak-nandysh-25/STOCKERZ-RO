@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { upper } from "@/lib/app-utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -88,9 +89,12 @@ function Shell() {
           )}
           <span className="font-bold truncate text-sm uppercase-data">{shopTitle}</span>
         </Link>
-        <button onClick={() => setOpen((v) => !v)} className="rounded p-1.5 glass">
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button onClick={() => setOpen((v) => !v)} className="rounded p-1.5 glass">
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       <div className="flex">
@@ -100,18 +104,21 @@ function Shell() {
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="hidden items-center gap-3 px-6 py-6 lg:flex min-w-0">
-            {shop?.logo_url ? (
-              <img src={shop.logo_url} alt={shopTitle} className="h-9 w-9 shrink-0 rounded-lg object-cover border border-white/10" />
-            ) : (
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/20 text-primary">
-                <Droplet className="h-5 w-5" />
+          <div className="hidden items-center justify-between px-6 py-6 lg:flex min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
+              {shop?.logo_url ? (
+                <img src={shop.logo_url} alt={shopTitle} className="h-9 w-9 shrink-0 rounded-lg object-cover border border-white/10" />
+              ) : (
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/20 text-primary">
+                  <Droplet className="h-5 w-5" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <span className="font-bold tracking-tight truncate block text-sm uppercase-data">{shopTitle}</span>
+                <span className="text-[10px] text-muted-foreground block truncate">RO Showroom OS</span>
               </div>
-            )}
-            <div className="min-w-0">
-              <span className="font-bold tracking-tight truncate block text-sm uppercase-data">{shopTitle}</span>
-              <span className="text-[10px] text-muted-foreground block truncate">RO Showroom OS</span>
             </div>
+            <ThemeToggle />
           </div>
 
           <nav className="space-y-1 px-3 pb-4 pt-4 lg:pt-0">

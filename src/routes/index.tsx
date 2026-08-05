@@ -22,6 +22,7 @@ import {
   SlidersHorizontal,
   ChevronDown
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -81,6 +82,7 @@ function Landing() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               to="/auth"
               search={{ mode: "login" }}

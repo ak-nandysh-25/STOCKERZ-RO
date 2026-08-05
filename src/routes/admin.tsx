@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Card, Empty, Field, Input, Modal, PageHeader, Table, Td, Th, Select } from "@/components/ui-kit";
 import { fmtMoney, upper } from "@/lib/app-utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   AlertTriangle,
   Edit,
@@ -399,6 +400,7 @@ function AdminControlCenter() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button variant="primary" onClick={() => setIsAddShopOpen(true)}>
             <Plus className="h-4 w-4" /> Add Shop
           </Button>
