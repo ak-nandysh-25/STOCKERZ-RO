@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button, Card, Field, Input, PageHeader, Textarea } from "@/components/ui-kit";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, Loader2, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Shop Profile — STOCKERZ RO" }] }),
@@ -17,56 +17,198 @@ function Page() {
     queryKey: ["shop"],
     queryFn: async () => (await supabase.from("shops").select("*").maybeSingle()).data,
   });
+
   const [f, setF] = useState({ name: "", contact: "", email: "", gst: "", address: "", logo_url: "" });
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
-    if (shop) setF({
-      name: shop.name ?? "", contact: shop.contact ?? "", email: shop.email ?? "",
-      gst: shop.gst ?? "", address: shop.address ?? "", logo_url: shop.logo_url ?? "",
-    });
+    if (shop) {
+      setF({
+        name: shop.name ?? "",
+        contact: shop.contact ?? "",
+        email: shop.email ?? "",
+        gst: shop.gst ?? "",
+        address: shop.address ?? "",
+        logo_url: shop.logo_url ?? "",
+      });
+    }
   }, [shop]);
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("shops").update({
-        name: f.name.toUpperCase(), contact: f.contact, email: f.email,
-        gst: f.gst.toUpperCase(), address: f.address.toUpperCase(), logo_url: f.logo_url || null,
-      }).eq("id", shop!.id);
+      const { error } = await supabase
+        .from("shops")
+        .update({
+          name: f.name.toUpperCase(),
+          contact: f.contact,
+          email: f.email,
+          gst: f.gst.toUpperCase(),
+          address: f.address.toUpperCase(),
+          logo_url: f.logo_url || null,
+        })
+        .eq("id", shop!.id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Saved"); qc.invalidateQueries({ queryKey: ["shop"] }); },
+    onSuccess: () => {
+      toast.success("Shop profile updated");
+      qc.invalidateQueries({ queryKey: ["shop"] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   async function uploadLogo(file: File) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const path = `${user.id}/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("shop-logos").upload(path, file, { upsert: true });
-    if (error) return toast.error(error.message);
-    const { data } = await supabase.storage.from("shop-logos").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
-    if (data?.signedUrl) { setF(prev => ({ ...prev, logo_url: data.signedUrl })); toast.success("Logo uploaded"); }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be under 5MB");
+      return;
+    }
+
+    setUploading(true);
+
+    const convertToBase64 = () => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setF((prev) => ({ ...prev, logo_url: reader.result as string }));
+          toast.success("Logo uploaded successfully");
+        }
+        setUploading(false);
+      };
+      reader.onerror = () => {
+        toast.error("Failed to read image file");
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const path = `${user?.id ?? "shop"}/${Date.now()}-${sanitizedName}`;
+
+      const { error } = await supabase.storage.from("shop-logos").upload(path, file, { upsert: true });
+
+      if (error) {
+        console.warn("Supabase storage upload notice:", error.message);
+        // Fallback to base64 data URL if storage bucket is missing or unconfigured
+        convertToBase64();
+        return;
+      }
+
+      const { data } = supabase.storage.from("shop-logos").getPublicUrl(path);
+      if (data?.publicUrl) {
+        setF((prev) => ({ ...prev, logo_url: data.publicUrl }));
+        toast.success("Logo uploaded successfully");
+      } else {
+        convertToBase64();
+      }
+    } catch (err: any) {
+      console.warn("Storage exception, using base64 fallback:", err);
+      convertToBase64();
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
     <div>
-      <PageHeader title="Shop Profile" description="Business details used on invoices" />
+      <PageHeader title="Shop Profile" description="Business details displayed on customer printed invoices" />
       <Card>
-        <form onSubmit={e => { e.preventDefault(); save.mutate(); }} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="md:col-span-2 flex items-center gap-4">
-            {f.logo_url && <img src={f.logo_url} alt="Shop logo" className="h-16 w-16 rounded-lg border border-glass-border object-cover" />}
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg glass px-3 py-2 text-sm hover:bg-white/10">
-              <Upload className="h-4 w-4" /> Upload logo
-              <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadLogo(e.target.files[0])} />
-            </label>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate();
+          }}
+          className="grid grid-cols-1 gap-4 md:grid-cols-2"
+        >
+          <div className="md:col-span-2 flex flex-wrap items-center gap-4 border-b border-glass-border pb-4">
+            {f.logo_url ? (
+              <div className="relative group">
+                <img
+                  src={f.logo_url}
+                  alt="Shop logo preview"
+                  className="h-20 w-20 rounded-xl border border-glass-border object-cover bg-black/20 shadow-inner"
+                />
+                <button
+                  type="button"
+                  onClick={() => setF((prev) => ({ ...prev, logo_url: "" }))}
+                  className="absolute -top-2 -right-2 grid h-6 w-6 place-items-center rounded-full bg-destructive text-destructive-foreground shadow-md transition hover:scale-110"
+                  title="Remove logo"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="grid h-20 w-20 place-items-center rounded-xl border border-dashed border-white/20 bg-white/5 text-muted-foreground">
+                <Upload className="h-6 w-6" />
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl glass px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-white/10 active:scale-95">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 text-primary" />}
+                <span>{uploading ? "Uploading..." : "Upload Showroom Logo"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploading}
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
+                />
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                PNG, JPG, WebP, or SVG (Max 5MB). Displays at the top of printed GST invoices.
+              </p>
+            </div>
           </div>
-          <Field label="Business name"><Input required value={f.name} onChange={e => setF({ ...f, name: e.target.value })} className="uppercase-data" /></Field>
-          <Field label="Contact number"><Input value={f.contact} onChange={e => setF({ ...f, contact: e.target.value })} /></Field>
-          <Field label="Email"><Input type="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></Field>
-          <Field label="GST number (optional)"><Input value={f.gst} onChange={e => setF({ ...f, gst: e.target.value })} className="uppercase-data" /></Field>
+
+          <Field label="Business name">
+            <Input
+              required
+              value={f.name}
+              onChange={(e) => setF({ ...f, name: e.target.value })}
+              className="uppercase-data"
+              placeholder="e.g. AQUA PURE RO SALES & SERVICE"
+            />
+          </Field>
+          <Field label="Contact number">
+            <Input
+              value={f.contact}
+              onChange={(e) => setF({ ...f, contact: e.target.value })}
+              placeholder="+91 98765 43210"
+            />
+          </Field>
+          <Field label="Email">
+            <Input
+              type="email"
+              value={f.email}
+              onChange={(e) => setF({ ...f, email: e.target.value })}
+              placeholder="shop@domain.com"
+            />
+          </Field>
+          <Field label="GST number (optional)">
+            <Input
+              value={f.gst}
+              onChange={(e) => setF({ ...f, gst: e.target.value })}
+              className="uppercase-data"
+              placeholder="33AAAAA0000A1Z5"
+            />
+          </Field>
           <div className="md:col-span-2">
-            <Field label="Address"><Textarea rows={3} value={f.address} onChange={e => setF({ ...f, address: e.target.value })} className="uppercase-data" /></Field>
+            <Field label="Showroom Address">
+              <Textarea
+                rows={3}
+                value={f.address}
+                onChange={(e) => setF({ ...f, address: e.target.value })}
+                className="uppercase-data"
+                placeholder="Full address for invoice header"
+              />
+            </Field>
           </div>
-          <div className="md:col-span-2 flex justify-end"><Button disabled={save.isPending}>Save profile</Button></div>
+          <div className="md:col-span-2 flex justify-end">
+            <Button disabled={save.isPending || uploading}>
+              {save.isPending ? "Saving Profile..." : "Save Shop Profile"}
+            </Button>
+          </div>
         </form>
       </Card>
     </div>
