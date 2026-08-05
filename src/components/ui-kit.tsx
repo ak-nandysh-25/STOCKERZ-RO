@@ -18,7 +18,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
 
 export function Button({ variant = "primary", className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" | "outline" }) {
   const styles = {
-    primary: "bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/20",
+    primary: "bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/25 active:scale-[0.98] transition-all",
     ghost: "hover:bg-white/5 text-foreground",
     outline: "glass hover:bg-white/10",
     danger: "bg-destructive text-destructive-foreground hover:brightness-110",
