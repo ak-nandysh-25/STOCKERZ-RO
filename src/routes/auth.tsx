@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Droplet, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ const emptyShop = { name: "", contact: "", gst: "", address: "" };
 
 function AuthPage() {
   const nav = useNavigate();
+  const qc = useQueryClient();
   const search = useSearch({ from: "/auth" });
   const [mode, setMode] = useState<"login" | "signup" | "forgot">(search.mode ?? "login");
   const [email, setEmail] = useState("");
@@ -75,25 +77,48 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
-        });
-        if (error) throw error;
-        if (data.user) {
-          await supabase
-            .from("shops")
-            .update({
-              name: shop.name.toUpperCase() || "MY SHOP",
-              contact: shop.contact || null,
-              email,
-              gst: shop.gst.toUpperCase() || null,
-              address: shop.address.toUpperCase() || null,
-            })
-            .eq("owner_id", data.user.id);
+        let authUser = (
+          await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+          })
+        ).data.user;
+
+        // Auto sign in if session was not automatically established
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
+          if (signInErr) throw signInErr;
+          authUser = signInData.user;
         }
-        toast.success("Shop created");
+
+        if (authUser) {
+          // Upsert shop record with filled details
+          const { error: upsertErr } = await supabase
+            .from("shops")
+            .upsert(
+              {
+                owner_id: authUser.id,
+                name: shop.name.trim().toUpperCase() || "MY SHOP",
+                contact: shop.contact.trim() || null,
+                email: email.trim(),
+                gst: shop.gst.trim().toUpperCase() || null,
+                address: shop.address.trim().toUpperCase() || null,
+              },
+              { onConflict: "owner_id" }
+            );
+
+          if (upsertErr) console.warn("Shop upsert notice:", upsertErr.message);
+        }
+
+        await qc.invalidateQueries({ queryKey: ["shop"] });
+        toast.success(`Shop "${shop.name.trim().toUpperCase() || "MY SHOP"}" created successfully!`);
+        nav({ to: "/dashboard", replace: true });
+        return;
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
