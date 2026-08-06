@@ -94,6 +94,10 @@ function AdminControlCenter() {
   const [deletingShop, setDeletingShop] = useState<ShopRow | null>(null);
   const [isDeletingShop, setIsDeletingShop] = useState(false);
 
+  // Purge Non-Admin Users State
+  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
+  const [isPurgingNonAdmin, setIsPurgingNonAdmin] = useState(false);
+
   // Fetch all administrative data
   const { data, isLoading } = useQuery({
     queryKey: ["admin-master-data"],
@@ -373,6 +377,22 @@ function AdminControlCenter() {
     }
   }
 
+  // Purge All Non-Admin Users
+  async function handlePurgeNonAdminUsers() {
+    setIsPurgingNonAdmin(true);
+    try {
+      const { data: count, error } = await (supabase.rpc as any)("purge_non_admin_users");
+      if (error) throw error;
+      toast.success(`Purged ${count ?? 0} non-admin user account(s) and their data`);
+      await qc.invalidateQueries({ queryKey: ["admin-master-data"] });
+      setIsPurgeModalOpen(false);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to purge non-admin users");
+    } finally {
+      setIsPurgingNonAdmin(false);
+    }
+  }
+
   // System Stats
   const systemTotals = useMemo(() => {
     const salesSum = (data?.sales ?? []).reduce((a, r) => a + Number(r.price) * Number(r.qty), 0);
@@ -401,6 +421,9 @@ function AdminControlCenter() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <Button variant="danger" onClick={() => setIsPurgeModalOpen(true)}>
+            <Trash2 className="h-4 w-4" /> Purge Non-Admin Users
+          </Button>
           <Button variant="primary" onClick={() => setIsAddShopOpen(true)}>
             <Plus className="h-4 w-4" /> Add Shop
           </Button>
@@ -914,6 +937,33 @@ function AdminControlCenter() {
             </Button>
             <Button variant="danger" onClick={handleDeleteShop} disabled={isDeletingShop}>
               {isDeletingShop ? "Deleting Shop..." : "Yes, Permanently Delete Shop"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL 4: PURGE NON-ADMIN USERS CONFIRMATION */}
+      <Modal open={isPurgeModalOpen} onClose={() => setIsPurgeModalOpen(false)} title="Purge Non-Admin Users">
+        <div className="pt-2">
+          <div className="flex items-start gap-3 rounded-2xl bg-destructive/10 p-4 border border-destructive/20 text-destructive">
+            <AlertTriangle className="h-6 w-6 shrink-0 mt-0.5" />
+            <div className="text-xs leading-relaxed">
+              <p className="font-bold text-sm">Purge All Non-Admin Users</p>
+              <p className="mt-1">
+                This action will delete <strong>ALL user accounts and shops</strong> in Supabase, keeping <strong>ONLY Admin accounts</strong>.
+              </p>
+              <p className="mt-1 font-semibold">
+                All associated sales, services, products, and shop data for non-admin accounts will be permanently wiped.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setIsPurgeModalOpen(false)} disabled={isPurgingNonAdmin}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handlePurgeNonAdminUsers} disabled={isPurgingNonAdmin}>
+              {isPurgingNonAdmin ? "Purging..." : "Yes, Purge Non-Admin Users"}
             </Button>
           </div>
         </div>
