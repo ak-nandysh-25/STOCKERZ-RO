@@ -51,7 +51,7 @@ function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) throw error;
       const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
         _user_id: data.user.id,

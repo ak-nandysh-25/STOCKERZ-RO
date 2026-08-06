@@ -77,19 +77,21 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
-        let authUser = (
-          await supabase.auth.signUp({
-            email: email.trim(),
-            password,
-            options: { emailRedirectTo: `${window.location.origin}/dashboard` },
-          })
-        ).data.user;
+        const cleanEmail = email.trim();
+        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+        });
+        if (signUpErr) throw signUpErr;
+
+        let authUser = signUpData.user;
 
         // Auto sign in if session was not automatically established
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) {
           const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
+            email: cleanEmail,
             password,
           });
           if (signInErr) throw signInErr;
@@ -105,7 +107,7 @@ function AuthPage() {
                 owner_id: authUser.id,
                 name: shop.name.trim().toUpperCase() || "MY SHOP",
                 contact: shop.contact.trim() || null,
-                email: email.trim(),
+                email: cleanEmail,
                 gst: shop.gst.trim().toUpperCase() || null,
                 address: shop.address.trim().toUpperCase() || null,
               },
@@ -120,7 +122,11 @@ function AuthPage() {
         nav({ to: "/dashboard", replace: true });
         return;
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const cleanEmail = email.trim();
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
         if (error) throw error;
 
         if (data.user) {
@@ -137,6 +143,7 @@ function AuthPage() {
         }
 
         toast.success("Welcome back");
+        nav({ to: "/dashboard" });
       }
       nav({ to: "/dashboard" });
     } catch (err: any) {
