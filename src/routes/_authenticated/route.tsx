@@ -16,8 +16,12 @@ import {
   X,
   Contact,
   AlertCircle,
+  Sparkles,
+  Loader2,
+  Store,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { upper } from "@/lib/app-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -67,6 +71,9 @@ function Shell() {
   const qc = useQueryClient();
   const loc = useLocation();
   const [open, setOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingData, setOnboardingData] = useState({ name: "", contact: "", gst: "", address: "" });
+  const [onboardingSaving, setOnboardingSaving] = useState(false);
 
   // Load shop profile for active user (auto-creating if missing, e.g. for Google OAuth)
   const { data: shop } = useQuery({
@@ -74,6 +81,36 @@ function Shell() {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
+
+      // Check for draft shop details saved before Google OAuth redirect
+      const pendingRaw = localStorage.getItem("stockerz_pending_shop");
+      if (pendingRaw) {
+        try {
+          const pending = JSON.parse(pendingRaw);
+          localStorage.removeItem("stockerz_pending_shop");
+          if (pending && (pending.name || pending.contact || pending.address)) {
+            const { data: updatedShop } = await supabase
+              .from("shops")
+              .upsert(
+                {
+                  owner_id: user.id,
+                  name: pending.name?.toUpperCase() || (user.user_metadata?.full_name ? `${user.user_metadata.full_name.toUpperCase()}'S SHOP` : "MY SHOP"),
+                  contact: pending.contact || null,
+                  email: user.email ?? null,
+                  gst: pending.gst?.toUpperCase() || null,
+                  address: pending.address?.toUpperCase() || null,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "owner_id" }
+              )
+              .select("*")
+              .maybeSingle();
+            if (updatedShop) return updatedShop;
+          }
+        } catch (e) {
+          console.warn("Failed to apply pending shop from Google OAuth:", e);
+        }
+      }
 
       const { data: existingShop } = await supabase.from("shops").select("*").maybeSingle();
       if (existingShop) return existingShop;
@@ -95,13 +132,79 @@ function Shell() {
 
       if (error) {
         console.warn("Auto shop creation notice:", error.message);
-        // Fallback fetch in case of race condition
         const { data: retryShop } = await supabase.from("shops").select("*").maybeSingle();
         return retryShop;
       }
       return newShop;
     },
   });
+
+  // Sync state & check if onboarding modal should open automatically
+  useEffect(() => {
+    if (shop) {
+      setOnboardingData({
+        name: shop.name && shop.name !== "MY SHOP" ? shop.name : "",
+        contact: shop.contact ?? "",
+        gst: shop.gst ?? "",
+        address: shop.address ?? "",
+      });
+
+      const isProfileIncomplete =
+        !shop.name ||
+        shop.name.toUpperCase() === "MY SHOP" ||
+        !shop.contact ||
+        !shop.address;
+
+      const dismissedKey = `stockerz_onboarding_dismissed_${shop.id}`;
+      const hasDismissed = localStorage.getItem(dismissedKey);
+
+      if (isProfileIncomplete && !hasDismissed) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [shop]);
+
+  async function handleSaveOnboarding(e: React.FormEvent) {
+    e.preventDefault();
+    setOnboardingSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const payload = {
+        owner_id: user.id,
+        name: onboardingData.name.toUpperCase() || "MY SHOP",
+        contact: onboardingData.contact || null,
+        email: user.email ?? null,
+        gst: onboardingData.gst.toUpperCase() || null,
+        address: onboardingData.address.toUpperCase() || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (shop?.id) {
+        const { error } = await supabase.from("shops").update(payload).eq("id", shop.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("shops").upsert(payload, { onConflict: "owner_id" });
+        if (error) throw error;
+      }
+
+      toast.success("Shop profile updated successfully!");
+      setShowOnboarding(false);
+      qc.invalidateQueries({ queryKey: ["shop"] });
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to update shop details");
+    } finally {
+      setOnboardingSaving(false);
+    }
+  }
+
+  function handleDismissOnboarding() {
+    if (shop?.id) {
+      localStorage.setItem(`stockerz_onboarding_dismissed_${shop.id}`, "true");
+    }
+    setShowOnboarding(false);
+  }
 
   async function signOut() {
     await qc.cancelQueries();
@@ -206,18 +309,121 @@ function Shell() {
                   </p>
                 </div>
               </div>
-              <Link
-                to="/settings"
+              <button
+                onClick={() => setShowOnboarding(true)}
                 className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-black hover:brightness-110 transition shadow-md"
               >
                 Fill Shop Profile →
-              </Link>
+              </button>
             </div>
           )}
 
           <Outlet />
         </main>
       </div>
+
+      {/* Onboarding / Shop Setup Modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="glass w-full max-w-lg rounded-2xl p-6 sm:p-8 shadow-2xl border border-white/20 relative">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/20 text-primary">
+                  <Store className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg leading-snug">Welcome to STOCKERZ RO!</h3>
+                  <p className="text-xs text-muted-foreground">Set up your RO Showroom profile to get started</p>
+                </div>
+              </div>
+              <button
+                onClick={handleDismissOnboarding}
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOnboarding} className="mt-6 space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Showroom / Shop Name <span className="text-primary">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={onboardingData.name}
+                  onChange={(e) => setOnboardingData({ ...onboardingData, name: e.target.value })}
+                  placeholder="e.g. AQUA PURE RO SALES & SERVICE"
+                  className="w-full rounded-xl bg-input px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data border border-white/10"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Contact Number <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={onboardingData.contact}
+                    onChange={(e) => setOnboardingData({ ...onboardingData, contact: e.target.value })}
+                    placeholder="+91 98765 43210"
+                    className="w-full rounded-xl bg-input px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary border border-white/10"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    GSTIN (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={onboardingData.gst}
+                    onChange={(e) => setOnboardingData({ ...onboardingData, gst: e.target.value })}
+                    placeholder="33AAAAA0000A1Z5"
+                    className="w-full rounded-xl bg-input px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data border border-white/10"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Showroom Address <span className="text-primary">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={onboardingData.address}
+                  onChange={(e) => setOnboardingData({ ...onboardingData, address: e.target.value })}
+                  placeholder="Full showroom address for printed invoices..."
+                  className="w-full rounded-xl bg-input px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data border border-white/10"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleDismissOnboarding}
+                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-white/5 transition"
+                >
+                  I'll do this later
+                </button>
+                <button
+                  type="submit"
+                  disabled={onboardingSaving}
+                  className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-60 transition"
+                >
+                  {onboardingSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  <span>Save & Launch Showroom</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

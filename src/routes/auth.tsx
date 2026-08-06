@@ -83,10 +83,13 @@ function AuthPage() {
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     try {
+      if (mode === "signup" && (shop.name || shop.contact || shop.address)) {
+        localStorage.setItem("stockerz_pending_shop", JSON.stringify(shop));
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
