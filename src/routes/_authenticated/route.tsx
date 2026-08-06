@@ -68,7 +68,7 @@ function Shell() {
   const loc = useLocation();
   const [open, setOpen] = useState(false);
 
-  // Load shop profile for active user (auto-creating if missing)
+  // Load shop profile for active user (must already exist)
   const { data: shop } = useQuery({
     queryKey: ["shop"],
     queryFn: async () => {
@@ -78,28 +78,14 @@ function Shell() {
       const { data: existingShop } = await supabase.from("shops").select("*").maybeSingle();
       if (existingShop) return existingShop;
 
-      // Auto-create shop if missing for this user
-      const defaultName = user.user_metadata?.full_name
-        ? `${user.user_metadata.full_name.toUpperCase()}'S SHOP`
-        : "MY SHOP";
-
-      const { data: newShop, error } = await supabase
-        .from("shops")
-        .insert({
-          owner_id: user.id,
-          name: defaultName,
-          email: user.email ?? null,
-        })
-        .select("*")
-        .maybeSingle();
-
-      if (error) {
-        console.warn("Auto shop creation notice:", error.message);
-        // Fallback fetch in case of race condition
-        const { data: retryShop } = await supabase.from("shops").select("*").maybeSingle();
-        return retryShop;
-      }
-      return newShop;
+      // If shop account does not exist or was deleted, sign out immediately
+      console.warn("No shop profile found for active user. Signing out.");
+      await qc.cancelQueries();
+      qc.clear();
+      await supabase.auth.signOut();
+      toast.error("Shop account not found or has been deleted. Sign in blocked.");
+      nav({ to: "/auth", replace: true });
+      return null;
     },
   });
 

@@ -95,8 +95,22 @@ function AuthPage() {
         }
         toast.success("Shop created");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+
+        if (data.user) {
+          const { data: userShop } = await supabase
+            .from("shops")
+            .select("id")
+            .eq("owner_id", data.user.id)
+            .maybeSingle();
+
+          if (!userShop) {
+            await supabase.auth.signOut();
+            throw new Error("No registered shop account found for this email. Sign in is only allowed for existing created accounts.");
+          }
+        }
+
         toast.success("Welcome back");
       }
       nav({ to: "/dashboard" });
