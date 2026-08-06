@@ -20,6 +20,7 @@ import {
 import { useState } from "react";
 import { upper } from "@/lib/app-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
