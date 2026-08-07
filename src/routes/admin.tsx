@@ -410,7 +410,9 @@ function AdminControlCenter() {
       {/* Top Navigation Header */}
       <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl glass p-4">
         <div className="flex min-w-0 items-center gap-3">
-          <img src="/stockerz-logo.png" alt="STOCKERZ RO" className="h-11 w-11 shrink-0 rounded-xl object-contain shadow-md" />
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent/20 text-accent shadow-inner">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
           <div className="min-w-0">
             <h1 className="truncate text-lg font-black tracking-tight">STOCKERZ RO — SYSTEM ADMIN</h1>
             <p className="truncate text-xs text-muted-foreground">Full Master Control & Multi-Tenant Operations</p>

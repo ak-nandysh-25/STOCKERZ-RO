@@ -56,7 +56,9 @@ function Landing() {
       <header className="sticky top-0 z-50 border-b border-white/5 bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <img src="/stockerz-logo.png" alt="STOCKERZ RO Logo" className="h-10 w-10 rounded-xl object-contain shadow-md transition transform hover:scale-105" />
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary/30 to-accent/30 p-2 text-primary shadow-inner">
+              <Droplet className="h-6 w-6 text-primary animate-pulse" />
+            </div>
             <div>
               <span className="text-xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 STOCKERZ <span className="text-primary">RO</span>

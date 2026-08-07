@@ -5,7 +5,6 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
-  ssr: false,
   head: () => ({ meta: [{ title: "Reset password — STOCKERZ RO" }] }),
   component: ResetPage,
 });
