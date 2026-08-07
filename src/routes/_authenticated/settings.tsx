@@ -78,11 +78,7 @@ function Page() {
       reader.onload = () => {
         if (typeof reader.result === "string") {
           setF((prev) => ({ ...prev, logo_url: reader.result as string }));
-          if (isFallback) {
-            toast.info("Logo stored using image fallback. Run the migration script in Supabase to enable remote bucket storage.");
-          } else {
-            toast.success("Logo uploaded successfully");
-          }
+          toast.success("Logo uploaded successfully");
         }
         setUploading(false);
       };
