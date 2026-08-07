@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, PageHeader } from "@/components/ui-kit";
 import { fmtMoney, upper, waLink } from "@/lib/app-utils";
-import { AlertTriangle, Droplet, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle } from "lucide-react";
-import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from "recharts";
+import { AlertTriangle, Droplet, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle, BarChart2 } from "lucide-react";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -12,9 +12,43 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
 
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload || !payload.length) return null;
+  const salesVal = payload.find((p: any) => p.dataKey === "sales")?.value ?? 0;
+  const officeVal = payload.find((p: any) => p.dataKey === "office")?.value ?? 0;
+  const serviceVal = payload.find((p: any) => p.dataKey === "service")?.value ?? 0;
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#0e1017] p-3.5 shadow-2xl backdrop-blur-md min-w-[150px]">
+      <div className="text-sm font-bold text-white mb-2">{label}</div>
+      <div className="space-y-1.5 text-xs font-medium">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#8b5cf6]" />
+            <span className="text-slate-300">Sales ₹</span>
+          </div>
+          <span className="font-semibold text-white">{salesVal.toLocaleString("en-IN")}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#10b981]" />
+            <span className="text-slate-300">Office ₹</span>
+          </div>
+          <span className="font-semibold text-white">{officeVal.toLocaleString("en-IN")}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#f59e0b]" />
+            <span className="text-slate-300">Service ₹</span>
+          </div>
+          <span className="font-semibold text-white">{serviceVal.toLocaleString("en-IN")}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard() {
-
-
   const { data: shop } = useQuery({
     queryKey: ["shop"],
     queryFn: async () => {
@@ -26,44 +60,96 @@ function Dashboard() {
   const { data: stats } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
-      const today = new Date().toISOString().slice(0, 10);
-      const monthStart = new Date(); monthStart.setDate(1);
-      const monthStartStr = monthStart.toISOString().slice(0, 10);
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayStr = now.toISOString().slice(0, 10);
+      const monthStartStr = `${year}-${String(month + 1).padStart(2, "0")}-01`;
       const in30 = new Date(); in30.setDate(in30.getDate() + 30);
 
-      const [sales30, products, services, reminders, emis] = await Promise.all([
-        supabase.from("sales").select("sale_date, qty, price").gte("sale_date", new Date(Date.now() - 30 * 86400000).toISOString().slice(0,10)),
+      const [salesRes, productsRes, servicesRes, remindersRes, emisRes] = await Promise.all([
+        supabase.from("sales").select("*"),
         supabase.from("products").select("*"),
-        supabase.from("services").select("*").order("service_date", { ascending: false }).limit(5),
-        supabase.from("services").select("*").eq("is_filter_change", true).not("next_service_date", "is", null).lte("next_service_date", in30.toISOString().slice(0,10)).order("next_service_date"),
+        supabase.from("services").select("*, service_items(*)").order("service_date", { ascending: false }),
+        supabase.from("services").select("*").eq("is_filter_change", true).not("next_service_date", "is", null).lte("next_service_date", in30.toISOString().slice(0, 10)).order("next_service_date"),
         supabase.from("emi_plans").select("*"),
       ]);
 
-      const salesRows = sales30.data ?? [];
-      const total = (rows: typeof salesRows) => rows.reduce((s, r) => s + Number(r.price) * Number(r.qty), 0);
-      const todaySales = total(salesRows.filter(r => r.sale_date === today));
-      const monthSales = total(salesRows.filter(r => r.sale_date >= monthStartStr));
+      const salesRows = salesRes.data ?? [];
+      const productsRows = productsRes.data ?? [];
+      const servicesRows = servicesRes.data ?? [];
 
-      // daily buckets last 7 days
-      const byDay: Record<string, number> = {};
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0,10);
-        byDay[d] = 0;
-      }
-      for (const r of salesRows) {
-        if (byDay[r.sale_date] !== undefined) byDay[r.sale_date] += Number(r.price) * Number(r.qty);
-      }
-      const chart = Object.entries(byDay).map(([d, v]) => ({ d: d.slice(5), v }));
+      const totalSalesAmt = (rows: typeof salesRows) => rows.reduce((s, r) => s + Number(r.price || 0) * Number(r.qty || 1), 0);
+      const todaySalesAmt = totalSalesAmt(salesRows.filter(r => r.sale_date === todayStr));
+      const monthSalesAmt = totalSalesAmt(salesRows.filter(r => r.sale_date >= monthStartStr));
 
-      const lowStock = (products.data ?? []).filter(p => p.qty <= p.low_stock_threshold);
+      // Build daily buckets 1..31 for current month
+      const dailyMap: Record<number, { day: number; sales: number; office: number; service: number }> = {};
+      for (let d = 1; d <= daysInMonth; d++) {
+        dailyMap[d] = { day: d, sales: 0, office: 0, service: 0 };
+      }
+
+      salesRows.forEach(r => {
+        if (!r.sale_date) return;
+        const dObj = new Date(r.sale_date);
+        if (dObj.getFullYear() === year && dObj.getMonth() === month) {
+          const day = dObj.getDate();
+          const amt = Number(r.price || 0) * Number(r.qty || 1);
+          if (r.source === "office") {
+            dailyMap[day].office += amt;
+          } else {
+            dailyMap[day].sales += amt;
+          }
+        }
+      });
+
+      servicesRows.forEach(s => {
+        if (!s.service_date) return;
+        const dObj = new Date(s.service_date);
+        if (dObj.getFullYear() === year && dObj.getMonth() === month) {
+          const day = dObj.getDate();
+          const itemsTotal = (s.service_items ?? []).reduce((acc: number, item: any) => acc + Number(item.price || 0), 0);
+          dailyMap[day].service += itemsTotal;
+        }
+      });
+
+      const dailyRevenueChart = Object.values(dailyMap);
+
+      // Today's transactions
+      const todaySalesList = salesRows.filter(r => r.sale_date === todayStr).map(r => ({
+        id: r.id,
+        type: r.source === "office" ? "Office" : "Sales",
+        name: r.product_name,
+        customer: r.customer_name || "Direct Sale",
+        amount: Number(r.price || 0) * Number(r.qty || 1),
+      }));
+
+      const todayServiceList = servicesRows.filter(s => s.service_date === todayStr).map(s => {
+        const amt = (s.service_items ?? []).reduce((acc: number, item: any) => acc + Number(item.price || 0), 0);
+        return {
+          id: s.id,
+          type: "Service",
+          name: s.service_type || "Service",
+          customer: s.customer_name,
+          amount: amt,
+        };
+      });
+
+      const todayTransactions = [...todaySalesList, ...todayServiceList];
+
+      const lowStock = productsRows.filter(p => Number(p.qty) <= Number(p.low_stock_threshold ?? 2));
+
       return {
-        todaySales, monthSales,
-        productCount: products.data?.length ?? 0,
+        todaySales: todaySalesAmt,
+        monthSales: monthSalesAmt,
+        productCount: productsRows.length,
         lowStock,
-        chart,
-        recentServices: services.data ?? [],
-        reminders: reminders.data ?? [],
-        emis: emis.data ?? [],
+        dailyRevenueChart,
+        todayTransactions,
+        recentServices: servicesRows.slice(0, 5),
+        reminders: remindersRes.data ?? [],
+        emis: emisRes.data ?? [],
       };
     },
   });
@@ -93,7 +179,6 @@ function Dashboard() {
 
       <PageHeader title="Dashboard" description="Overview of your shop performance" />
 
-
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi icon={ShoppingCart} label="Today's Sales" value={fmtMoney(stats?.todaySales ?? 0)} accent="text-primary" />
         <Kpi icon={TrendingUp} label="Month Sales" value={fmtMoney(stats?.monthSales ?? 0)} accent="text-accent" />
@@ -101,57 +186,104 @@ function Dashboard() {
         <Kpi icon={Wrench} label="Reminders Due" value={String(stats?.reminders.length ?? 0)} accent="text-success" />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Sales — Last 7 days</h3>
-          <div className="h-64">
+      {/* Daily Revenue Chart */}
+      <div className="mt-6">
+        <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BarChart2 className="h-4 w-4 text-purple-400" />
+              <h3 className="text-base font-bold text-white tracking-wide">Daily Revenue</h3>
+            </div>
+          </div>
+          <div className="h-64 sm:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats?.chart ?? []}>
-                <defs>
-                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="d" tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
-                <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} />
-                <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-glass-border)", borderRadius: 8 }} />
-                <Area type="monotone" dataKey="v" stroke="var(--color-primary)" strokeWidth={2} fill="url(#salesGrad)" />
-              </AreaChart>
+              <BarChart data={stats?.dailyRevenueChart ?? []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="day" tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.1)" }} tick={{ fill: "#64748b", fontSize: 11 }} interval={1} />
+                <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 11 }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255, 255, 255, 0.05)" }} />
+                <Bar dataKey="sales" name="Sales ₹" stackId="a" fill="#8b5cf6" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="office" name="Office ₹" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="service" name="Service ₹" stackId="a" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
+      </div>
 
-        <Card>
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            <AlertTriangle className="h-4 w-4 text-warning" /> Low Stock
-          </h3>
-          {stats?.lowStock.length ? (
-            <ul className="space-y-2 text-sm">
-              {stats.lowStock.map(p => (
-                <li key={p.id} className="flex justify-between rounded-lg bg-white/5 px-3 py-2 uppercase-data">
-                  <span>{p.model}</span>
-                  <span className="text-warning">{p.qty}</span>
+      {/* Today's Transactions */}
+      <div className="mt-6">
+        <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
+          <h3 className="text-base font-bold text-white tracking-wide mb-4">Today's Transactions</h3>
+          {!stats?.todayTransactions || stats.todayTransactions.length === 0 ? (
+            <div className="py-8 text-center text-sm font-medium text-slate-400">No transactions today</div>
+          ) : (
+            <ul className="divide-y divide-white/5 text-sm">
+              {stats.todayTransactions.map((t) => (
+                <li key={t.id} className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                        t.type === "Sales" ? "bg-purple-500/20 text-purple-300" : t.type === "Office" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+                      }`}
+                    >
+                      {t.type}
+                    </span>
+                    <div>
+                      <div className="font-semibold text-white uppercase-data">{t.name}</div>
+                      <div className="text-xs text-slate-400">{t.customer}</div>
+                    </div>
+                  </div>
+                  <div className="font-bold text-white">{fmtMoney(t.amount)}</div>
                 </li>
               ))}
             </ul>
-          ) : <p className="text-sm text-muted-foreground">All stocked up</p>}
+          )}
         </Card>
       </div>
 
+      {/* Stock Overview */}
+      <div className="mt-6">
+        <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold text-white tracking-wide">Stock Overview</h3>
+            <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300 border border-white/10">
+              {stats?.productCount ?? 0} items
+            </span>
+          </div>
+          {stats?.lowStock && stats.lowStock.length > 0 ? (
+            <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wider text-warning flex items-center gap-1.5 mb-2">
+                <AlertTriangle className="h-3.5 w-3.5" /> Low Stock Alerts
+              </div>
+              <ul className="space-y-2 text-sm">
+                {stats.lowStock.map((p) => (
+                  <li key={p.id} className="flex justify-between items-center rounded-xl bg-white/5 px-3.5 py-2.5 uppercase-data">
+                    <span className="font-medium text-white">{p.model}</span>
+                    <span className="text-xs font-bold text-warning bg-warning/10 px-2.5 py-1 rounded-lg">Qty: {p.qty}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="py-6 text-center text-sm text-slate-400">All inventory items are well-stocked</div>
+          )}
+        </Card>
+      </div>
+
+      {/* Filter Reminders & Recent Services */}
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Filter Reminders</h3>
             <Link to="/service" className="text-xs text-primary hover:underline">View all</Link>
           </div>
           {stats?.reminders.length ? (
             <ul className="space-y-2 text-sm">
-              {stats.reminders.slice(0, 5).map(s => (
+              {stats.reminders.slice(0, 5).map((s) => (
                 <li key={s.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 uppercase-data">
                   <div>
-                    <div className="font-medium">{s.customer_name}</div>
+                    <div className="font-medium text-white">{s.customer_name}</div>
                     <div className="text-xs text-muted-foreground">Due {s.next_service_date}</div>
                   </div>
                   {s.phone && (
@@ -165,14 +297,14 @@ function Dashboard() {
           ) : <p className="text-sm text-muted-foreground">No reminders due in next 30 days</p>}
         </Card>
 
-        <Card>
+        <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Recent Services</h3>
           {stats?.recentServices.length ? (
             <ul className="space-y-2 text-sm">
-              {stats.recentServices.map(s => (
+              {stats.recentServices.map((s) => (
                 <li key={s.id} className="flex justify-between rounded-lg bg-white/5 px-3 py-2 uppercase-data">
                   <div>
-                    <div className="font-medium">{s.customer_name}</div>
+                    <div className="font-medium text-white">{s.customer_name}</div>
                     <div className="text-xs text-muted-foreground">{s.service_type}</div>
                   </div>
                   <span className="text-xs text-muted-foreground">{s.service_date}</span>
@@ -197,3 +329,4 @@ function Kpi({ icon: Icon, label, value, accent }: { icon: any; label: string; v
     </motion.div>
   );
 }
+
