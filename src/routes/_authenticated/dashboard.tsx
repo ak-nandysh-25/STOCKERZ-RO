@@ -154,29 +154,8 @@ function Dashboard() {
     },
   });
 
-  const shopTitle = shop?.name ? upper(shop.name) : "MY SHOP";
-
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl glass p-4 sm:p-5">
-        <div className="flex items-center gap-3.5 min-w-0">
-          {shop?.logo_url ? (
-            <img src={shop.logo_url} alt={shopTitle} className="h-12 w-12 shrink-0 rounded-xl object-cover border border-white/10 shadow-sm" />
-          ) : (
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary">
-              <Droplet className="h-6 w-6" />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold tracking-tight md:text-xl uppercase-data">{shopTitle}</h1>
-            <p className="text-xs text-muted-foreground truncate">{shop?.contact ? `Phone: ${shop.contact}` : shop?.address ? shop.address : "Water Purifier Showroom"}</p>
-          </div>
-        </div>
-        <Link to="/settings" className="hidden sm:inline-flex rounded-xl glass px-3.5 py-2 text-xs font-semibold hover:bg-white/10">
-          Edit Shop Profile
-        </Link>
-      </div>
-
       <PageHeader title="Dashboard" description="Overview of your shop performance" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
