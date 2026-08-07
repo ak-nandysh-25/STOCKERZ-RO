@@ -115,9 +115,7 @@ function Shell() {
           {shop?.logo_url ? (
             <img src={shop.logo_url} alt={shopTitle} className="h-8 w-8 rounded-lg object-cover border border-white/10" />
           ) : (
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/20 text-primary">
-              <Droplet className="h-4 w-4" />
-            </div>
+            <img src="/stockerz-logo.png" alt={shopTitle} className="h-8 w-8 rounded-lg object-contain border border-white/10" />
           )}
           <span className="font-bold truncate text-sm uppercase-data">{shopTitle}</span>
         </Link>
@@ -141,9 +139,7 @@ function Shell() {
               {shop?.logo_url ? (
                 <img src={shop.logo_url} alt={shopTitle} className="h-9 w-9 shrink-0 rounded-lg object-cover border border-white/10" />
               ) : (
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/20 text-primary">
-                  <Droplet className="h-5 w-5" />
-                </div>
+                <img src="/stockerz-logo.png" alt={shopTitle} className="h-9 w-9 shrink-0 rounded-lg object-contain border border-white/10" />
               )}
               <div className="min-w-0">
                 <span className="font-bold tracking-tight truncate block text-sm uppercase-data">{shopTitle}</span>
