@@ -1,0 +1,696 @@
+import { o as __toESM } from "../_runtime.mjs";
+import { a as require_jsx_runtime, o as require_react } from "../_libs/react+tanstack__react-query.mjs";
+import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
+import { A as FileText, B as ChevronRight, F as CreditCard, H as ChevronDown, J as ArrowRight, K as Boxes, L as Clock, N as Droplet, R as CircleCheck, W as ChartColumn, c as TrendingUp, g as Shield, i as Users, m as SlidersHorizontal, p as Sparkles, q as Bell, r as Wrench, t as Zap } from "../_libs/lucide-react.mjs";
+import { t as ThemeToggle } from "./theme-toggle-Du9IrxTh.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-CJ48Sb8e.js
+var import_react = /* @__PURE__ */ __toESM(require_react());
+var import_jsx_runtime = require_jsx_runtime();
+function Landing() {
+	const [openFaq, setOpenFaq] = (0, import_react.useState)(0);
+	const toggleFaq = (index) => {
+		setOpenFaq(openFaq === index ? null : index);
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "aurora-bg min-h-screen text-foreground selection:bg-primary selection:text-primary-foreground",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", {
+				className: "sticky top-0 z-50 border-b border-white/5 bg-background/70 backdrop-blur-xl",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mx-auto flex max-w-7xl items-center justify-between px-6 py-4",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
+								src: "/stockerz-logo.png",
+								alt: "STOCKERZ RO Logo",
+								className: "h-10 w-10 rounded-xl object-contain shadow-md transition transform hover:scale-105"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "text-xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent",
+								children: ["STOCKERZ ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-primary",
+									children: "RO"
+								})]
+							}) })]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("nav", {
+							className: "hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+									href: "#features",
+									className: "transition hover:text-foreground",
+									children: "Features"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+									href: "#workflow",
+									className: "transition hover:text-foreground",
+									children: "How it Works"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+									href: "#modules",
+									className: "transition hover:text-foreground",
+									children: "Modules"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+									href: "#faq",
+									className: "transition hover:text-foreground",
+									children: "FAQ"
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-3",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ThemeToggle, {}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
+									to: "/auth",
+									search: { mode: "login" },
+									className: "rounded-xl glass px-4 py-2 text-sm font-medium text-foreground transition hover:bg-white/10 hover:border-white/20",
+									children: "Sign In"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+									to: "/auth",
+									search: { mode: "signup" },
+									className: "inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110",
+									children: ["Get Started ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowRight, { className: "h-4 w-4" })]
+								})
+							]
+						})
+					]
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "relative mx-auto max-w-6xl px-6 pt-20 pb-20 text-center",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary backdrop-blur-md mb-8",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, { className: "h-3.5 w-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Purpose-Built SaaS for Water Purifier Showrooms & Technicians" })]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h1", {
+						className: "mx-auto max-w-4xl text-5xl font-black leading-tight tracking-tight md:text-7xl",
+						children: [
+							"Supercharge your RO business with",
+							" ",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "bg-gradient-to-r from-aurora-2 via-primary to-aurora-3 bg-clip-text text-transparent",
+								children: "automated filter reminders"
+							}),
+							" ",
+							"& smart sales."
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mx-auto mt-6 max-w-3xl text-lg text-muted-foreground leading-relaxed md:text-xl",
+						children: "Everything your RO shop needs: stock inventory auto-deduction, 3-month filter service scheduling, custom monthly EMI plans, technician assignment, and 1-click GST invoices."
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-10 flex flex-wrap items-center justify-center gap-4",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+							to: "/auth",
+							search: { mode: "signup" },
+							className: "inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-primary/30 transition hover:scale-[1.02] hover:brightness-110 active:scale-95",
+							children: ["Launch Your Shop Free ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowRight, { className: "h-5 w-5" })]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+							href: "#features",
+							className: "inline-flex items-center gap-2 rounded-2xl glass px-7 py-4 text-base font-semibold text-foreground transition hover:bg-white/10",
+							children: "Explore All Features"
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-12 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground font-medium",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "inline-flex items-center gap-1.5 rounded-lg glass px-3 py-1.5 border border-white/5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, { className: "h-3.5 w-3.5 text-primary" }), " Auto-Filter Reminders"]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "inline-flex items-center gap-1.5 rounded-lg glass px-3 py-1.5 border border-white/5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, { className: "h-3.5 w-3.5 text-primary" }), " Thermal & PDF Invoices"]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "inline-flex items-center gap-1.5 rounded-lg glass px-3 py-1.5 border border-white/5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, { className: "h-3.5 w-3.5 text-primary" }), " EMI Dues Ledger"]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "inline-flex items-center gap-1.5 rounded-lg glass px-3 py-1.5 border border-white/5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, { className: "h-3.5 w-3.5 text-primary" }), " Field Technician Tracking"]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "inline-flex items-center gap-1.5 rounded-lg glass px-3 py-1.5 border border-white/5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Shield, { className: "h-3.5 w-3.5 text-primary" }), " Multi-Shop Tenant Isolation"]
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-16 relative mx-auto max-w-5xl rounded-3xl border border-white/10 glass p-4 md:p-6 shadow-2xl shadow-primary/10 overflow-hidden",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute -top-24 -left-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl pointer-events-none" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-accent/20 blur-3xl pointer-events-none" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "flex items-center justify-between border-b border-white/10 pb-4 mb-6",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-2",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "h-3 w-3 rounded-full bg-red-500/80" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "h-3 w-3 rounded-full bg-yellow-500/80" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "h-3 w-3 rounded-full bg-green-500/80" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "ml-3 text-xs font-mono text-muted-foreground",
+											children: "stockerz-ro.app/dashboard"
+										})
+									]
+								})
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-left",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center justify-between text-muted-foreground",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-xs font-medium",
+													children: "Monthly Revenue"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-4 w-4 text-emerald-400" })]
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+												className: "mt-2 text-2xl font-black",
+												children: "₹ 1,84,500"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-[11px] text-emerald-400 font-medium",
+												children: "+18.4% from last month"
+											})
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center justify-between text-muted-foreground",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-xs font-medium",
+													children: "Service Due (90 Days)"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bell, { className: "h-4 w-4 text-amber-400" })]
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+												className: "mt-2 text-2xl font-black",
+												children: "18 Customers"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-[11px] text-amber-400 font-medium",
+												children: "Filter replacement alert active"
+											})
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center justify-between text-muted-foreground",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-xs font-medium",
+													children: "Active Stock Items"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Boxes, { className: "h-4 w-4 text-primary" })]
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+												className: "mt-2 text-2xl font-black",
+												children: "142 Units"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-[11px] text-primary font-medium",
+												children: "Membranes, Filters & Purifiers"
+											})
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center justify-between text-muted-foreground",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-xs font-medium",
+													children: "Pending EMI Dues"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CreditCard, { className: "h-4 w-4 text-accent" })]
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+												className: "mt-2 text-2xl font-black",
+												children: "₹ 32,400"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-[11px] text-accent font-medium",
+												children: "8 active installments"
+											})
+										]
+									})
+								]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-left",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center justify-between mb-3",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", {
+										className: "text-xs font-bold uppercase tracking-wider text-muted-foreground",
+										children: "Recent Service Calls & Technicians"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "text-xs text-primary font-medium",
+										children: "View All Schedule →"
+									})]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "space-y-2 text-xs",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/5",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex items-center gap-3",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "h-8 w-8 rounded-lg bg-primary/20 text-primary grid place-items-center font-bold",
+												children: "RO"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "font-semibold",
+												children: "AquaGrand 12L Service & Sediment Candle"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "text-[11px] text-muted-foreground",
+												children: "Cust: S. Ramesh • Tech: Kumar (Field Engg)"
+											})] })]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold text-[10px]",
+											children: "Scheduled Today"
+										})]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/5",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex items-center gap-3",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "h-8 w-8 rounded-lg bg-accent/20 text-accent grid place-items-center font-bold",
+												children: "EMI"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "font-semibold",
+												children: "Kent Supreme 20L Installation"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "text-[11px] text-muted-foreground",
+												children: "Cust: M. Priya • 6 Months EMI Plan"
+											})] })]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 font-semibold text-[10px]",
+											children: "Invoice Paid"
+										})]
+									})]
+								})]
+							})
+						]
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				id: "features",
+				className: "mx-auto max-w-7xl px-6 py-20",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "text-center max-w-3xl mx-auto mb-16",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "text-xs font-bold uppercase tracking-[0.2em] text-primary",
+							children: "Engineered for Water Purifier Businesses"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+							className: "mt-3 text-3xl font-black md:text-5xl",
+							children: "Everything you need to scale your RO shop"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "mt-4 text-muted-foreground text-base md:text-lg",
+							children: "Stop relying on manual registers, missing 3-month filter changes, or losing track of customer EMI payments."
+						})
+					]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "grid gap-6 md:grid-cols-2 lg:grid-cols-3",
+					children: [
+						{
+							icon: Droplet,
+							title: "Stock Inventory & Spare Parts",
+							desc: "Auto-decrement stock during sales. Categorize RO Purifiers, Filter Candles, Membranes, Booster Pumps, and UV Lamps easily.",
+							badge: "Auto-Deduction"
+						},
+						{
+							icon: Clock,
+							title: "3-Month Filter Change Reminders",
+							desc: "Automatic filter service alerts on your dashboard 90 days after purchase or last service call so you never lose a repeat customer.",
+							badge: "100% Repeat Revenue"
+						},
+						{
+							icon: CreditCard,
+							title: "Custom EMI & Installment Plans",
+							desc: "Offer zero-down EMI options to your customers. Track monthly pending dues, collection histories, and send reminders.",
+							badge: "Ledger Management"
+						},
+						{
+							icon: FileText,
+							title: "GST Invoicing & Thermal Printing",
+							desc: "Generate professional tax invoices for purifiers and service calls. Supports Bluetooth thermal receipts and PDF downloads.",
+							badge: "1-Click Print"
+						},
+						{
+							icon: Users,
+							title: "Technician & Field Engineer Dispatch",
+							desc: "Assign service calls and installations to your field technicians. Monitor completion rates and technician performance.",
+							badge: "Field Ops"
+						},
+						{
+							icon: ChartColumn,
+							title: "Financial Reports & Profit Analytics",
+							desc: "Real-time daily, weekly, and monthly sales graphs, profit margin calculators, and top-selling model breakdowns.",
+							badge: "Live Analytics"
+						}
+					].map((f) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "group relative rounded-3xl glass p-8 transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center justify-between",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition duration-300",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(f.icon, { className: "h-6 w-6" })
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-muted-foreground",
+									children: f.badge
+								})]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+								className: "mt-6 text-xl font-bold",
+								children: f.title
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "mt-3 text-sm text-muted-foreground leading-relaxed",
+								children: f.desc
+							})
+						]
+					}, f.title))
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", {
+				id: "modules",
+				className: "mx-auto max-w-7xl px-6 py-20 border-t border-white/5",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid lg:grid-cols-12 gap-12 items-center",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "lg:col-span-5 text-left",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-xs font-bold uppercase tracking-[0.2em] text-accent",
+								children: "Comprehensive Modules"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+								className: "mt-3 text-3xl font-black md:text-4xl leading-tight",
+								children: "One software. All your showroom operations."
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "mt-4 text-muted-foreground text-sm leading-relaxed",
+								children: "Designed specifically for water purification technicians and showroom managers. No confusing bloated menus — just the tools you use every single day."
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "mt-8 space-y-4",
+								children: [
+									{
+										title: "Customer History CRM",
+										text: "Complete history of installed purifiers, membrane changes, and service history per customer."
+									},
+									{
+										title: "Multi-Sale Modes",
+										text: "Direct Sale, Sale with Installation, or EMI Installment Plan options in one billing window."
+									},
+									{
+										title: "Custom Shop Branding",
+										text: "Upload your shop logo, address, contact details, and GSTIN to print directly on bills."
+									}
+								].map((item, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex gap-3",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold",
+										children: "✓"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", {
+										className: "text-sm font-bold",
+										children: item.title
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "text-xs text-muted-foreground mt-0.5",
+										children: item.text
+									})] })]
+								}, idx))
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "mt-8",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+									to: "/auth",
+									search: { mode: "signup" },
+									className: "inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition",
+									children: ["Try the dashboard live ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronRight, { className: "h-4 w-4" })]
+								})
+							})
+						]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "lg:col-span-7",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid sm:grid-cols-2 gap-4",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-3xl glass p-6 border border-white/10 text-left",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "h-10 w-10 rounded-xl bg-blue-500/20 text-blue-400 grid place-items-center font-bold mb-4",
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Wrench, { className: "h-5 w-5" })
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+											className: "font-bold text-lg",
+											children: "Service Ticket Management"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "text-xs text-muted-foreground mt-2 leading-relaxed",
+											children: "Log service calls, assign technicians, specify replace items (Pre-filter, Sediment, Carbon, RO Membrane, UV lamp) and track resolution status."
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-3xl glass p-6 border border-white/10 text-left sm:translate-y-4",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "h-10 w-10 rounded-xl bg-emerald-500/20 text-emerald-400 grid place-items-center font-bold mb-4",
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Zap, { className: "h-5 w-5" })
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+											className: "font-bold text-lg",
+											children: "Instant GST Invoice Engine"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "text-xs text-muted-foreground mt-2 leading-relaxed",
+											children: "Auto-calculates CGST, SGST, IGST, discounts, and payment methods (Cash, UPI, Card, Net Banking). Print clean A4 or 3-inch thermal receipts."
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-3xl glass p-6 border border-white/10 text-left",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "h-10 w-10 rounded-xl bg-purple-500/20 text-purple-400 grid place-items-center font-bold mb-4",
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Users, { className: "h-5 w-5" })
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+											className: "font-bold text-lg",
+											children: "Field Technician Portal"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "text-xs text-muted-foreground mt-2 leading-relaxed",
+											children: "Technicians get assigned service locations, customer contacts, and required replacement parts right on their mobile browsers."
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-3xl glass p-6 border border-white/10 text-left sm:translate-y-4",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "h-10 w-10 rounded-xl bg-amber-500/20 text-amber-400 grid place-items-center font-bold mb-4",
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SlidersHorizontal, { className: "h-5 w-5" })
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+											className: "font-bold text-lg",
+											children: "Multi-Shop & Role Control"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "text-xs text-muted-foreground mt-2 leading-relaxed",
+											children: "Supports admin roles and shop owners. Each shop’s customer database and inventory remains isolated with enterprise-grade row level security."
+										})
+									]
+								})
+							]
+						})
+					})]
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				id: "workflow",
+				className: "mx-auto max-w-6xl px-6 py-20 border-t border-white/5 text-center",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "text-xs font-bold uppercase tracking-[0.2em] text-primary",
+						children: "Simple 3-Step Setup"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "mt-3 text-3xl font-black md:text-5xl",
+						children: "How STOCKERZ RO Works"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-4 text-muted-foreground max-w-2xl mx-auto text-base",
+						children: "Get your entire shop running in under 5 minutes without complex IT setup or hardware installation."
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-16 grid gap-8 md:grid-cols-3 text-left",
+						children: [
+							{
+								step: "01",
+								title: "Setup Your Showroom Profile",
+								desc: "Sign up, enter your shop name, logo, GSTIN, and contact details for printed invoices."
+							},
+							{
+								step: "02",
+								title: "Add Stock & Log Sales",
+								desc: "Add your purifiers and spare filters into inventory. Log sales with instant stock auto-deduction."
+							},
+							{
+								step: "03",
+								title: "Automate Reminders & Service",
+								desc: "The dashboard automatically alerts you when 3-month filter replacement is due for each customer."
+							}
+						].map((s) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "relative rounded-3xl glass p-8 border border-white/10",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-4xl font-black text-primary/40 font-mono",
+									children: s.step
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+									className: "mt-4 font-bold text-xl",
+									children: s.title
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "mt-2 text-sm text-muted-foreground leading-relaxed",
+									children: s.desc
+								})
+							]
+						}, s.step))
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				id: "faq",
+				className: "mx-auto max-w-4xl px-6 py-20 border-t border-white/5",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "text-center mb-12",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "text-xs font-bold uppercase tracking-[0.2em] text-primary",
+						children: "Got Questions?"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "mt-2 text-3xl font-black md:text-4xl",
+						children: "Frequently Asked Questions"
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "space-y-4",
+					children: [
+						{
+							q: "How does the 3-month filter replacement reminder work?",
+							a: "When you complete a sale or service for a customer, STOCKERZ RO calculates a 90-day timer based on the installed filter lifespan. Exactly 90 days later, the customer automatically appears in your dashboard's 'Filter Service Due' list so you can call or send a reminder."
+						},
+						{
+							q: "Can I generate GST bills and print on thermal printers?",
+							a: "Yes! STOCKERZ RO supports both full-page A4 PDF tax invoices and 3-inch thermal Bluetooth receipt printing. You can customize your shop's GSTIN, logo, and phone number."
+						},
+						{
+							q: "How does stock auto-deduction work during sales?",
+							a: "When you create a new sale (Direct Sale or Sale + Installation), the purifiers, sediment filters, pre-carbon candles, or RO membranes included in the bill are automatically subtracted from your live stock inventory."
+						},
+						{
+							q: "Can field technicians log in from mobile devices?",
+							a: "Yes, STOCKERZ RO is 100% responsive and works smoothly on mobile browsers. Technicians can view assigned service tickets, navigate to customer addresses, and log completed filter replacements on the go."
+						},
+						{
+							q: "Is my shop data isolated and secure?",
+							a: "Absoltely. STOCKERZ RO uses multi-tenant Row Level Security (RLS) powered by Supabase. Your shop's customer records, sales totals, and inventory are strictly private to your account."
+						}
+					].map((item, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "rounded-2xl glass border border-white/10 overflow-hidden transition",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							onClick: () => toggleFaq(index),
+							className: "w-full flex items-center justify-between p-6 text-left font-bold text-base hover:text-primary transition",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: item.q }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronDown, { className: `h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 ${openFaq === index ? "rotate-180 text-primary" : ""}` })]
+						}), openFaq === index && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "px-6 pb-6 text-sm text-muted-foreground leading-relaxed border-t border-white/5 pt-4",
+							children: item.a
+						})]
+					}, index))
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", {
+				className: "mx-auto max-w-6xl px-6 py-16 mb-16",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "relative rounded-3xl bg-gradient-to-r from-primary/20 via-accent/20 to-aurora-1/20 border border-white/15 p-10 md:p-16 text-center overflow-hidden backdrop-blur-xl",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute -top-32 -right-32 h-64 w-64 rounded-full bg-primary/30 blur-3xl" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+							className: "text-3xl font-black md:text-5xl tracking-tight",
+							children: "Ready to streamline your RO shop today?"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "mt-4 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto",
+							children: "Join hundreds of RO purifier dealers who trust STOCKERZ RO to manage stock, service reminders, and sales."
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "mt-8 flex justify-center gap-4",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+								to: "/auth",
+								search: { mode: "signup" },
+								className: "inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-primary/30 transition hover:brightness-110 hover:scale-[1.02]",
+								children: ["Start Free Trial Now ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowRight, { className: "h-5 w-5" })]
+							})
+						})
+					]
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("footer", {
+				className: "border-t border-white/5 py-12 bg-black/30",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mx-auto max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between gap-6",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "grid h-8 w-8 place-items-center rounded-lg bg-primary/20 text-primary",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Droplet, { className: "h-4 w-4" })
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "font-extrabold text-sm tracking-tight text-foreground",
+								children: "STOCKERZ RO"
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+							className: "text-xs text-muted-foreground text-center",
+							children: [
+								"© ",
+								(/* @__PURE__ */ new Date()).getFullYear(),
+								" STOCKERZ RO. Built for RO Water Purifier Shops & Service Outlets."
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-6 text-xs text-muted-foreground",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
+								to: "/auth",
+								search: { mode: "login" },
+								className: "hover:text-foreground transition",
+								children: "Sign In"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+								href: "#privacy",
+								className: "hover:text-foreground transition",
+								children: "Privacy Policy"
+							})]
+						})
+					]
+				})
+			})
+		]
+	});
+}
+//#endregion
+export { Landing as component };
