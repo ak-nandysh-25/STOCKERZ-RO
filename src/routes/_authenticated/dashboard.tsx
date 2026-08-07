@@ -211,66 +211,6 @@ function Dashboard() {
         </Card>
       </div>
 
-      {/* Today's Transactions */}
-      <div className="mt-6">
-        <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
-          <h3 className="text-base font-bold text-white tracking-wide mb-4">Today's Transactions</h3>
-          {!stats?.todayTransactions || stats.todayTransactions.length === 0 ? (
-            <div className="py-8 text-center text-sm font-medium text-slate-400">No transactions today</div>
-          ) : (
-            <ul className="divide-y divide-white/5 text-sm">
-              {stats.todayTransactions.map((t) => (
-                <li key={t.id} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
-                        t.type === "Sales" ? "bg-purple-500/20 text-purple-300" : t.type === "Office" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
-                      }`}
-                    >
-                      {t.type}
-                    </span>
-                    <div>
-                      <div className="font-semibold text-white uppercase-data">{t.name}</div>
-                      <div className="text-xs text-slate-400">{t.customer}</div>
-                    </div>
-                  </div>
-                  <div className="font-bold text-white">{fmtMoney(t.amount)}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-
-      {/* Stock Overview */}
-      <div className="mt-6">
-        <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-white tracking-wide">Stock Overview</h3>
-            <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300 border border-white/10">
-              {stats?.productCount ?? 0} items
-            </span>
-          </div>
-          {stats?.lowStock && stats.lowStock.length > 0 ? (
-            <div className="space-y-2">
-              <div className="text-xs font-semibold uppercase tracking-wider text-warning flex items-center gap-1.5 mb-2">
-                <AlertTriangle className="h-3.5 w-3.5" /> Low Stock Alerts
-              </div>
-              <ul className="space-y-2 text-sm">
-                {stats.lowStock.map((p) => (
-                  <li key={p.id} className="flex justify-between items-center rounded-xl bg-white/5 px-3.5 py-2.5 uppercase-data">
-                    <span className="font-medium text-white">{p.model}</span>
-                    <span className="text-xs font-bold text-warning bg-warning/10 px-2.5 py-1 rounded-lg">Qty: {p.qty}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="py-6 text-center text-sm text-slate-400">All inventory items are well-stocked</div>
-          )}
-        </Card>
-      </div>
-
       {/* Filter Reminders & Recent Services */}
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
