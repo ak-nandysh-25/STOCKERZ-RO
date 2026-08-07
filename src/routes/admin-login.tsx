@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/admin-login")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Admin sign in — STOCKERZ RO" },

@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Sign in — STOCKERZ RO" },
@@ -30,8 +31,9 @@ const emptyShop = { name: "", contact: "", gst: "", address: "" };
 function AuthPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const search = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">(search.mode ?? "login");
+  const search = useSearch({ strict: false });
+  const initialMode = (search?.mode === "signup" || search?.mode === "forgot") ? search.mode : "login";
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -40,10 +42,10 @@ function AuthPage() {
   const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
-    if (search.mode) {
-      setMode(search.mode);
+    if (search?.mode) {
+      setMode(search.mode as "login" | "signup" | "forgot");
     }
-  }, [search.mode]);
+  }, [search?.mode]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
