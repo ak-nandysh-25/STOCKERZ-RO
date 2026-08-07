@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "init:mongo": "node scripts/init-mongodb.cjs"
+    "init:mongo": "node scripts/init-mongodb.cjs",
+    "test:db": "node scripts/test-db-connection.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

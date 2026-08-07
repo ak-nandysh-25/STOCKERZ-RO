@@ -1,6 +1,18 @@
 const { MongoClient } = require("mongodb");
 const fs = require("fs");
 const path = require("path");
+const dns = require("dns");
+
+// Use Google / Cloudflare public DNS servers to resolve SRV records on Windows
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1", "8.8.4.4"]);
+} catch (e) {
+  // ignore if DNS override fails
+}
+
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 // Parse .env file manually
 const envPath = path.resolve(__dirname, "../.env");
@@ -63,27 +75,8 @@ async function initializeMongoDb() {
 
   let client;
   try {
-    client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+    client = new MongoClient(uri, { serverSelectionTimeoutMS: 6000 });
     await client.connect();
-  } catch (err) {
-    if (err.message.includes("querySrv ECONNREFUSED") || err.message.includes("ENOTFOUND")) {
-      const fallbackUri = uri.includes("stockerzro.hofyhk5.mongodb.net")
-        ? uri.replace("mongodb+srv://", "mongodb://").replace("stockerzro.hofyhk5.mongodb.net/?", "ac-stjf9ep-shard-00-00.hofyhk5.mongodb.net:27017,ac-stjf9ep-shard-00-01.hofyhk5.mongodb.net:27017,ac-stjf9ep-shard-00-02.hofyhk5.mongodb.net:27017/?ssl=true&replicaSet=atlas-stjf9ep-shard-0&authSource=admin&")
-        : null;
-
-      if (fallbackUri) {
-        console.log("SRV DNS query restricted; trying direct replica set connection...");
-        client = new MongoClient(fallbackUri, { serverSelectionTimeoutMS: 5000 });
-        await client.connect();
-      } else {
-        throw err;
-      }
-    } else {
-      throw err;
-    }
-  }
-
-  try {
     console.log("✅ Successfully connected to MongoDB Atlas cluster!");
 
     const db = client.db(dbName);
