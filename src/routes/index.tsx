@@ -20,7 +20,13 @@ import {
   Clock,
   Printer,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  BookOpen,
+  Search,
+  Lightbulb,
+  FileCheck,
+  ArrowUpRight,
+  Check
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -45,10 +51,111 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [manualCategory, setManualCategory] = useState<string>("all");
+  const [manualSearch, setManualSearch] = useState<string>("");
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
   };
+
+  const manualSections = [
+    {
+      id: "setup",
+      title: "1. Showroom Profile & Initial Setup",
+      icon: SlidersHorizontal,
+      badge: "Initial Configuration",
+      summary: "Set up your business identity, logo, showroom address, GSTIN, and receipt format.",
+      steps: [
+        "Go to 'Settings' page from the main navigation sidebar.",
+        "Enter your Shop Name, Address, Contact Phone Number, and GST Registration Number (GSTIN).",
+        "Upload your company logo (PNG/JPG) for display on GST A4 invoices and 3-inch thermal bills.",
+        "Configure default tax percentages (e.g. 18% CGST+SGST or 12%) and print preferences."
+      ],
+      proTip: "Make sure your GSTIN and phone number are accurate, as they print on all customer receipts automatically."
+    },
+    {
+      id: "inventory",
+      title: "2. Adding Products & Stock Inventory",
+      icon: Boxes,
+      badge: "Stock Control",
+      summary: "Manage water purifiers, sediment filters, carbon candles, RO membranes, booster pumps, and UV lamps.",
+      steps: [
+        "Navigate to the 'Stock / Inventory' tab.",
+        "Click 'Add New Item' and specify Product Name, Category, Stock Quantity, and Unit Price.",
+        "Set Low-Stock Alert threshold (e.g., alert when filter candles drop below 5 units).",
+        "Stock levels auto-decrement in real time whenever a sale is completed."
+      ],
+      proTip: "Categorize items accurately (Purifiers vs Consumable Spare Parts) to enable detailed profit margin analytics."
+    },
+    {
+      id: "sales",
+      title: "3. Sales Billing & Custom EMI Installment Plans",
+      icon: CreditCard,
+      badge: "Sales & Finance",
+      summary: "Issue cash/UPI sales or set up zero-down monthly customer EMI plans with installment tracking.",
+      steps: [
+        "Click 'New Sale' on the Sales dashboard.",
+        "Select an existing Customer or register a new customer with contact details and address.",
+        "Select Sale Type: 'Direct Sale' (Full Payment) or 'EMI Installment Plan'.",
+        "For EMI: enter Down Payment, total months (e.g., 3, 6, 12 months), and monthly due date.",
+        "Generate instant GST Tax Invoice with options for A4 PDF download or Bluetooth thermal printing."
+      ],
+      proTip: "Track pending EMI dues in the 'EMI Dues' ledger widget to send payment reminders to customers."
+    },
+    {
+      id: "service",
+      title: "4. 3-Month Filter Reminders & Service Engine",
+      icon: Clock,
+      badge: "Customer Retention",
+      summary: "Automate 90-day filter replacement scheduling to ensure steady recurring service revenue.",
+      steps: [
+        "When a purifier is sold or serviced, a 90-day filter lifespan timer starts automatically.",
+        "Check the 'Service Due' tab on your dashboard for customers reaching their 3-month replacement date.",
+        "Click 'Create Service Ticket' to specify required filter types (Pre-filter, Sediment, Carbon, RO Membrane, UV lamp).",
+        "Mark service calls as 'Scheduled', 'In Progress', or 'Completed'."
+      ],
+      proTip: "Filter replacement reminders generate up to 60% of an RO shop's yearly profit — never miss a 90-day alert!"
+    },
+    {
+      id: "tech",
+      title: "5. Field Technician Dispatch & Operations",
+      icon: Users,
+      badge: "Field Ops",
+      summary: "Assign installation and repair jobs to field technicians with mobile browser access.",
+      steps: [
+        "Go to 'Technicians' section and add your field engineers with contact details.",
+        "When creating a service call or installation job, assign it to a specific technician.",
+        "Technicians log into their mobile browser portal to view assigned task lists, customer location, and spare parts needed.",
+        "Technicians update job status to 'Completed' directly from customer premises."
+      ],
+      proTip: "Technicians can add field notes and replacement part details directly from their mobile devices."
+    },
+    {
+      id: "reports",
+      title: "6. Financial Analytics & Business Reports",
+      icon: BarChart3,
+      badge: "Analytics & Growth",
+      summary: "Monitor daily revenue, gross profit margins, top-selling models, and GST liabilities.",
+      steps: [
+        "Navigate to 'Reports' or Admin Overview dashboard.",
+        "View revenue graphs filtered by day, week, month, or custom date ranges.",
+        "Review profit margin breakdowns calculated from stock cost vs selling price.",
+        "Export GST sales records for monthly tax filing."
+      ],
+      proTip: "Use analytics to identify top-performing technicians and highest-margin filter models."
+    }
+  ];
+
+  const filteredManualSections = manualSections.filter((sec) => {
+    const matchesCategory = manualCategory === "all" || sec.id === manualCategory;
+    const matchesSearch =
+      manualSearch.trim() === "" ||
+      sec.title.toLowerCase().includes(manualSearch.toLowerCase()) ||
+      sec.summary.toLowerCase().includes(manualSearch.toLowerCase()) ||
+      sec.steps.some((st) => st.toLowerCase().includes(manualSearch.toLowerCase())) ||
+      sec.proTip.toLowerCase().includes(manualSearch.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="aurora-bg min-h-screen text-foreground selection:bg-primary selection:text-primary-foreground">
@@ -488,6 +595,184 @@ function Landing() {
         </div>
       </section>
 
+      {/* User Manual Section */}
+      <section id="manual" className="mx-auto max-w-7xl px-6 py-20 border-t border-white/5 scroll-mt-20">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary backdrop-blur-md mb-4">
+            <BookOpen className="h-4 w-4" />
+            <span>Official Operating Guide</span>
+          </div>
+          <h2 className="text-3xl font-black md:text-5xl tracking-tight">
+            STOCKERZ RO <span className="text-primary">User Manual</span>
+          </h2>
+          <p className="mt-4 text-muted-foreground text-base md:text-lg">
+            Everything you need to master shop setup, inventory tracking, EMI billing, 90-day filter reminders, technician dispatch, and GST invoicing.
+          </p>
+        </div>
+
+        {/* Search & Category Filter Bar */}
+        <div className="mx-auto max-w-4xl mb-12 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search user manual (e.g. EMI, filter reminder, GST invoice, technician, stock)..."
+              value={manualSearch}
+              onChange={(e) => setManualSearch(e.target.value)}
+              className="w-full rounded-2xl glass border border-white/10 bg-background/50 pl-12 pr-4 py-3.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            {manualSearch && (
+              <button
+                onClick={() => setManualSearch("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-medium">
+            {[
+              { id: "all", label: "All Guides" },
+              { id: "setup", label: "1. Shop Setup" },
+              { id: "inventory", label: "2. Inventory" },
+              { id: "sales", label: "3. Billing & EMI" },
+              { id: "service", label: "4. Filter Reminders" },
+              { id: "tech", label: "5. Technicians" },
+              { id: "reports", label: "6. Analytics" },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setManualCategory(cat.id)}
+                className={`rounded-xl px-4 py-2 transition border ${
+                  manualCategory === cat.id
+                    ? "bg-primary text-primary-foreground border-primary font-bold shadow-md shadow-primary/20"
+                    : "glass border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Manual Cards Grid */}
+        {filteredManualSections.length === 0 ? (
+          <div className="text-center py-12 rounded-3xl glass border border-white/10 max-w-2xl mx-auto">
+            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+            <p className="font-semibold text-lg">No manual topics match "{manualSearch}"</p>
+            <p className="text-xs text-muted-foreground mt-1">Try searching for terms like "stock", "EMI", "service", or "invoice".</p>
+            <button
+              onClick={() => {
+                setManualSearch("");
+                setManualCategory("all");
+              }}
+              className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-primary hover:underline"
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {filteredManualSections.map((sec) => {
+              const SecIcon = sec.icon;
+              return (
+                <div
+                  key={sec.id}
+                  className="rounded-3xl glass border border-white/10 p-6 flex flex-col justify-between transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+                >
+                  <div>
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-4 gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary">
+                          <SecIcon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg leading-snug">{sec.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">{sec.summary}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-muted-foreground shrink-0 self-start">
+                        {sec.badge}
+                      </span>
+                    </div>
+
+                    {/* Step-by-Step Instructions */}
+                    <div className="mt-5 space-y-3">
+                      <div className="text-[11px] font-bold text-primary uppercase tracking-wider">Step-by-Step Instructions:</div>
+                      {sec.steps.map((stepText, stepIdx) => (
+                        <div key={stepIdx} className="flex gap-3 text-xs leading-relaxed text-muted-foreground">
+                          <div className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/20 text-primary text-[10px] font-mono font-bold">
+                            {stepIdx + 1}
+                          </div>
+                          <span className="text-foreground/90">{stepText}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pro Tip Box */}
+                  <div className="mt-6 pt-4 border-t border-white/5">
+                    <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3.5 flex items-start gap-2.5 text-xs text-amber-200">
+                      <Lightbulb className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-amber-300">PRO TIP: </span>
+                        <span>{sec.proTip}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Quick Reference Summary & Key Specifications Banner */}
+        <div className="mt-12 rounded-3xl glass border border-white/10 p-8">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="space-y-3 text-left">
+              <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <FileCheck className="h-4 w-4" /> Quick Reference Specs
+              </div>
+              <h3 className="text-2xl font-bold">Key System Rules & Defaults</h3>
+              <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+                Bookmark these core operational defaults for your showroom staff to maintain consistent billing and service schedules.
+              </p>
+
+              <div className="grid sm:grid-cols-2 gap-3 text-xs pt-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span><strong className="text-foreground">Filter Reminder Cycle:</strong> Exactly 90 days after purchase or last service call</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span><strong className="text-foreground">Supported Printing:</strong> A4 PDF Tax Invoices & 3-Inch Bluetooth Thermal Receipts</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span><strong className="text-foreground">Inventory Logic:</strong> Auto-deduction upon sale creation with low-stock alerts</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span><strong className="text-foreground">Data Isolation:</strong> Supabase Multi-tenant Row Level Security (RLS)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 flex flex-col sm:flex-row gap-3">
+              <Link
+                to="/auth"
+                search={{ mode: "login" }}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110"
+              >
+                Access Dashboard <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA Banner */}
       <section className="mx-auto max-w-6xl px-6 py-16 mb-16">
         <div className="relative rounded-3xl bg-gradient-to-r from-primary/20 via-accent/20 to-aurora-1/20 border border-white/15 p-10 md:p-16 text-center overflow-hidden backdrop-blur-xl">
@@ -527,6 +812,9 @@ function Landing() {
           </p>
 
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
+            <a href="#manual" className="hover:text-foreground transition">
+              User Manual
+            </a>
             <Link to="/auth" search={{ mode: "login" }} className="hover:text-foreground transition">
               Sign In
             </Link>
