@@ -108,13 +108,14 @@ function Shell() {
   const [collapsed, setCollapsed] = useState(false);
   const [confirmSignOutOpen, setConfirmSignOutOpen] = useState(false);
 
-  // Load shop profile for active user (must already exist)
+  // Load shop profile for active user (resolves by owner_id, email link, or auto-creation)
   const { data: shop } = useQuery({
     queryKey: ["shop"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
+      // 1. Check shop by owner_id
       const { data: existingShop } = await supabase
         .from("shops")
         .select("*")
@@ -123,14 +124,42 @@ function Shell() {
 
       if (existingShop) return existingShop;
 
-      // If shop account does not exist or was deleted, sign out immediately
-      console.warn("No shop profile found for active user. Signing out.");
-      await qc.cancelQueries();
-      qc.clear();
-      await supabase.auth.signOut();
-      toast.error("Shop account not found or has been deleted. Sign in blocked.");
-      nav({ to: "/auth", replace: true });
-      return null;
+      // 2. If not found by owner_id, check by email link
+      if (user.email) {
+        const { data: shopByEmail } = await supabase
+          .from("shops")
+          .select("*")
+          .eq("email", user.email)
+          .maybeSingle();
+
+        if (shopByEmail) {
+          const { data: updatedShop } = await supabase
+            .from("shops")
+            .update({ owner_id: user.id })
+            .eq("id", shopByEmail.id)
+            .select("*")
+            .single();
+
+          if (updatedShop) return updatedShop;
+        }
+      }
+
+      // 3. Auto-upsert shop profile so valid logged-in users are never blocked
+      const shopName = user.user_metadata?.shop_name || "MY SHOP";
+      const { data: newShop } = await supabase
+        .from("shops")
+        .upsert(
+          {
+            owner_id: user.id,
+            name: shopName,
+            email: user.email ?? null,
+          },
+          { onConflict: "owner_id" }
+        )
+        .select("*")
+        .single();
+
+      return newShop ?? null;
     },
   });
 

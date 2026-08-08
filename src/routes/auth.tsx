@@ -136,9 +136,29 @@ function AuthPage() {
             .eq("owner_id", data.user.id)
             .maybeSingle();
 
-          if (!userShop) {
-            await supabase.auth.signOut();
-            throw new Error("No registered shop account found for this email. Sign in is only allowed for existing created accounts.");
+          if (!userShop && cleanEmail) {
+            // Check if shop exists with matching email
+            const { data: shopByEmail } = await supabase
+              .from("shops")
+              .select("id")
+              .eq("email", cleanEmail)
+              .maybeSingle();
+
+            if (shopByEmail) {
+              await supabase
+                .from("shops")
+                .update({ owner_id: data.user.id })
+                .eq("id", shopByEmail.id);
+            } else {
+              await supabase.from("shops").upsert(
+                {
+                  owner_id: data.user.id,
+                  name: "MY SHOP",
+                  email: cleanEmail,
+                },
+                { onConflict: "owner_id" }
+              );
+            }
           }
         }
 
