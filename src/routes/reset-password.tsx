@@ -34,7 +34,7 @@ function ResetPage() {
       return;
     }
     if (!/[^A-Za-z0-9]/.test(password)) {
-      toast.error("Password must contain at least 1 special character (e.g. !@#$%^&*)");
+      toast.error("Password must contain at least 1 special character");
       setLoading(false);
       return;
     }

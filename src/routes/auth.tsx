@@ -41,6 +41,10 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
+  const hasMinLength = password.length >= 8;
+  const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+
   useEffect(() => {
     if (search.mode) {
       setMode(search.mode);
@@ -79,17 +83,17 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
-        if (password.length < 8) {
+        if (!hasMinLength) {
           toast.error("Password must be at least 8 characters");
           setLoading(false);
           return;
         }
-        if (!/[^A-Za-z0-9]/.test(password)) {
-          toast.error("Password must contain at least 1 special character (e.g. !@#$%^&*)");
+        if (!hasSpecialChar) {
+          toast.error("Password must contain at least 1 special character");
           setLoading(false);
           return;
         }
-        if (password !== confirmPassword) {
+        if (!passwordsMatch) {
           toast.error("Passwords do not match");
           setLoading(false);
           return;
@@ -308,9 +312,20 @@ function AuthPage() {
                 </button>
               </div>
               {mode === "signup" && (
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Must be at least 8 characters and contain at least 1 special character (e.g. !@#$%^&*)
-                </p>
+                <div className="mt-2 space-y-1.5 text-xs">
+                  <div className={`flex items-center gap-1.5 transition ${hasMinLength ? "text-emerald-400 font-medium" : "text-muted-foreground"}`}>
+                    <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${hasMinLength ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-white/10 text-muted-foreground"}`}>
+                      {hasMinLength ? "✓" : "•"}
+                    </span>
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 transition ${hasSpecialChar ? "text-emerald-400 font-medium" : "text-muted-foreground"}`}>
+                    <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${hasSpecialChar ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-white/10 text-muted-foreground"}`}>
+                      {hasSpecialChar ? "✓" : "•"}
+                    </span>
+                    <span>At least 1 special character (!@#$%^&*)</span>
+                  </div>
+                </div>
               )}
             </Field>
           )}
@@ -336,6 +351,16 @@ function AuthPage() {
                   {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {mode === "signup" && confirmPassword.length > 0 && (
+                <div className="mt-1.5 text-xs">
+                  <div className={`flex items-center gap-1.5 transition ${passwordsMatch ? "text-emerald-400 font-medium" : "text-red-400"}`}>
+                    <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${passwordsMatch ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-red-500/20 text-red-400 font-bold"}`}>
+                      {passwordsMatch ? "✓" : "✕"}
+                    </span>
+                    <span>{passwordsMatch ? "Passwords match" : "Passwords do not match"}</span>
+                  </div>
+                </div>
+              )}
             </Field>
           )}
 
