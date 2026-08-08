@@ -58,7 +58,7 @@ function Landing() {
           <div className="flex items-center gap-3">
             <img src="/stockerz-logo.png" alt="STOCKERZ RO" className="h-10 w-10 rounded-xl object-contain shadow-md" />
             <div>
-              <span className="text-xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
                 STOCKERZ <span className="text-primary">RO</span>
               </span>
             </div>
@@ -517,7 +517,9 @@ function Landing() {
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/20 text-primary">
               <Droplet className="h-4 w-4" />
             </div>
-            <span className="font-extrabold text-sm tracking-tight text-foreground">STOCKERZ RO</span>
+            <span className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white">
+              STOCKERZ <span className="text-primary">RO</span>
+            </span>
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
