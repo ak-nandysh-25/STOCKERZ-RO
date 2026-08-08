@@ -302,7 +302,7 @@ function AuthPage() {
             {mode === "login"
               ? "Sign in"
               : mode === "signup"
-              ? "Create shop"
+              ? "Register"
               : resetSent
               ? "Resend reset link"
               : "Send reset link"}
@@ -313,7 +313,7 @@ function AuthPage() {
           {mode === "login" ? (
             <div className="flex items-center justify-between">
               <button onClick={() => setMode("signup")} className="text-muted-foreground hover:text-foreground">
-                Need an account? <span className="text-foreground font-semibold">Create shop</span>
+                New to STOCKERZ RO? <span className="text-foreground font-semibold">Register</span>
               </button>
               <button
                 onClick={() => {
