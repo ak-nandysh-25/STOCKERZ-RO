@@ -18,6 +18,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  RotateCw,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -107,6 +108,14 @@ function Shell() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [confirmSignOutOpen, setConfirmSignOutOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    await qc.invalidateQueries();
+    toast.success("Page data refreshed");
+    setTimeout(() => setIsRefreshing(false), 600);
+  }
 
   // Load shop profile for active user (resolves by owner_id, email link, or auto-creation)
   const { data: shop } = useQuery({
@@ -193,6 +202,13 @@ function Shell() {
           <span className="font-bold truncate text-sm uppercase-data">{shopTitle}</span>
         </Link>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            title="Refresh Page Data"
+            className="rounded p-1.5 glass text-muted-foreground hover:text-foreground transition cursor-pointer"
+          >
+            <RotateCw className={`h-4 w-4 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+          </button>
           <ThemeToggle />
           <button onClick={() => setOpen((v) => !v)} className="rounded p-1.5 glass">
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -225,6 +241,13 @@ function Shell() {
           </div>
 
           <div className={`flex items-center ${collapsed ? "flex-col gap-2" : "gap-1"}`}>
+            <button
+              onClick={handleRefresh}
+              title="Refresh Page Data"
+              className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-foreground transition cursor-pointer"
+            >
+              <RotateCw className={`h-4 w-4 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+            </button>
             {!collapsed && <ThemeToggle />}
             <button
               onClick={() => setCollapsed((v) => !v)}
