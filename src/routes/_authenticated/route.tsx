@@ -18,7 +18,6 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  RotateCw,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -108,54 +107,6 @@ function Shell() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [confirmSignOutOpen, setConfirmSignOutOpen] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [startY, setStartY] = useState<number | null>(null);
-  const mainRef = useRef<HTMLElement>(null);
-
-  const THRESHOLD = 65;
-
-  const handlePullStart = (clientY: number) => {
-    if (mainRef.current && mainRef.current.scrollTop <= 2) {
-      setStartY(clientY);
-    }
-  };
-
-  const handlePullMove = (clientY: number) => {
-    if (startY === null || isRefreshing) return;
-    if (mainRef.current && mainRef.current.scrollTop > 2) {
-      setStartY(null);
-      setPullDistance(0);
-      return;
-    }
-
-    const diff = clientY - startY;
-    if (diff > 0) {
-      const distance = Math.min(Math.pow(diff, 0.85), 100);
-      setPullDistance(distance);
-    }
-  };
-
-  const handlePullEnd = async () => {
-    if (startY === null) return;
-    setStartY(null);
-
-    if (pullDistance >= THRESHOLD && !isRefreshing) {
-      setIsRefreshing(true);
-      setPullDistance(50);
-      try {
-        await qc.invalidateQueries();
-        toast.success("Page data refreshed");
-      } finally {
-        setTimeout(() => {
-          setIsRefreshing(false);
-          setPullDistance(0);
-        }, 500);
-      }
-    } else {
-      setPullDistance(0);
-    }
-  };
 
   // Load shop profile for active user (resolves by owner_id, email link, or auto-creation)
   const { data: shop } = useQuery({
@@ -309,13 +260,13 @@ function Shell() {
                       collapsed ? "justify-center px-0" : "px-3"
                     } ${
                       active
-                        ? "bg-primary text-primary-foreground font-semibold shadow-[0_0_12px_rgba(59,130,246,0.2)] border-l-2 border-primary"
-                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground font-medium"
+                        ? "bg-primary/15 text-primary font-semibold shadow-[0_0_12px_rgba(59,130,246,0.2)] border-l-2 border-primary"
+                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                     }`}
                   >
                     <n.icon
                       className={`h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-110 ${
-                        active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+                        active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                       }`}
                     />
                     {!collapsed && <span className="truncate">{n.label}</span>}
@@ -368,48 +319,10 @@ function Shell() {
       {/* Mobile Drawer Overlay */}
       {open && <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setOpen(false)} />}
 
-      {/* Main Content Area with Slide-to-Refresh */}
-      <main
-        ref={mainRef}
-        onTouchStart={(e) => handlePullStart(e.touches[0].clientY)}
-        onTouchMove={(e) => handlePullMove(e.touches[0].clientY)}
-        onTouchEnd={handlePullEnd}
-        onMouseDown={(e) => handlePullStart(e.clientY)}
-        onMouseMove={(e) => handlePullMove(e.clientY)}
-        onMouseUp={handlePullEnd}
-        onMouseLeave={handlePullEnd}
-        className={`relative flex-1 h-full lg:h-screen overflow-y-auto p-4 lg:p-8 min-w-0 transition-[margin] duration-300 ease-in-out select-none sm:select-auto ${
-          collapsed ? "lg:ml-20" : "lg:ml-64"
-        }`}
-      >
-        {/* Slide to Refresh Indicator */}
-        <div
-          className="pointer-events-none sticky top-0 z-50 flex items-center justify-center overflow-hidden transition-all duration-200"
-          style={{
-            height: isRefreshing ? "48px" : `${pullDistance}px`,
-            opacity: pullDistance > 5 || isRefreshing ? 1 : 0,
-            marginBottom: pullDistance > 5 || isRefreshing ? "12px" : "0px",
-          }}
-        >
-          <div className="flex items-center gap-2 rounded-full border border-primary/30 bg-background/90 px-4 py-1.5 text-xs font-bold text-primary shadow-xl backdrop-blur-md">
-            <RotateCw
-              className={`h-4 w-4 text-primary transition-transform duration-150 ${
-                isRefreshing ? "animate-spin" : ""
-              }`}
-              style={{
-                transform: isRefreshing ? undefined : `rotate(${Math.min(pullDistance * 3.6, 360)}deg)`,
-              }}
-            />
-            <span>
-              {isRefreshing
-                ? "Refreshing data..."
-                : pullDistance >= THRESHOLD
-                ? "Release to refresh"
-                : "Slide down to refresh"}
-            </span>
-          </div>
-        </div>
-        
+      {/* Main Content Area */}
+      <main className={`flex-1 h-full lg:h-screen overflow-y-auto p-4 lg:p-8 min-w-0 transition-[margin] duration-300 ease-in-out ${
+        collapsed ? "lg:ml-20" : "lg:ml-64"
+      }`}>
         {/* Complete Profile Alert Banner */}
         {isIncomplete && !loc.pathname.includes("/settings") && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200 backdrop-blur-md">
