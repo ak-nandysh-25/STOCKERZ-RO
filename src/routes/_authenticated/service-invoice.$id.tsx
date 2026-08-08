@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink } from "@/lib/app-utils";
+import { fmtMoney, upper, waLink, fmtDate } from "@/lib/app-utils";
 import { Printer, Download, MessageCircle, ArrowLeft } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -45,12 +45,12 @@ function ServiceInvoicePage() {
     y += 10;
     doc.setFontSize(14); doc.text(`SERVICE INVOICE #${invoiceNo}`, M, y); y += 20;
     doc.setFontSize(10);
-    doc.text(`DATE: ${svc.service_date}`, M, y); y += 14;
+    doc.text(`DATE: ${fmtDate(svc.service_date)}`, M, y); y += 14;
     doc.text(`CUSTOMER: ${upper(svc.customer_name)}`, M, y); y += 14;
     if (svc.phone) { doc.text(`PHONE: ${svc.phone}`, M, y); y += 14; }
     if (svc.address) { doc.text(`ADDRESS: ${upper(svc.address)}`, M, y); y += 14; }
     doc.text(`SERVICE: ${upper(svc.service_type)}`, M, y); y += 14;
-    if (svc.next_service_date) { doc.text(`NEXT SERVICE: ${svc.next_service_date}`, M, y); y += 14; }
+    if (svc.next_service_date) { doc.text(`NEXT SERVICE: ${fmtDate(svc.next_service_date)}`, M, y); y += 14; }
     y += 10;
     doc.line(M, y, 555, y); y += 16;
     doc.text("ITEM", M, y); doc.text("PRICE", 490, y); y += 10;
@@ -65,7 +65,7 @@ function ServiceInvoicePage() {
     doc.save(`service-${invoiceNo}.pdf`);
   }
 
-  const waMessage = `SERVICE #${invoiceNo}\n${upper(shop?.name ?? "")}\n${upper(svc.service_type)} - ${fmtMoney(total)}\nDATE: ${svc.service_date}${svc.next_service_date ? `\nNEXT: ${svc.next_service_date}` : ""}\nTHANK YOU!`;
+  const waMessage = `SERVICE #${invoiceNo}\n${upper(shop?.name ?? "")}\n${upper(svc.service_type)} - ${fmtMoney(total)}\nDATE: ${fmtDate(svc.service_date)}${svc.next_service_date ? `\nNEXT: ${fmtDate(svc.next_service_date)}` : ""}\nTHANK YOU!`;
 
   return (
     <div>
@@ -93,8 +93,8 @@ function ServiceInvoicePage() {
           <div className="text-right">
             <h2 className="text-lg font-bold md:text-xl">SERVICE INVOICE</h2>
             <p className="text-xs">#{invoiceNo}</p>
-            <p className="text-xs">DATE: {svc.service_date}</p>
-            {svc.next_service_date && <p className="text-xs">NEXT: {svc.next_service_date}</p>}
+            <p className="text-xs">DATE: {fmtDate(svc.service_date)}</p>
+            {svc.next_service_date && <p className="text-xs">NEXT: {fmtDate(svc.next_service_date)}</p>}
           </div>
         </div>
 

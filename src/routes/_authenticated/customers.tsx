@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, Empty, Input, PageHeader } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink } from "@/lib/app-utils";
+import { fmtMoney, upper, waLink, fmtDate } from "@/lib/app-utils";
 import { useMemo, useState } from "react";
 import { Search, Phone, User, ShoppingCart, Wrench, MessageCircle, FileText, ChevronLeft } from "lucide-react";
 
@@ -135,7 +135,7 @@ function CustomersPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 uppercase-data">
                       <div className="truncate font-medium">{s.service_type}</div>
-                      <div className="text-xs text-muted-foreground">{s.service_date} • {s.service_items?.length ?? 0} ITEMS {s.next_service_date ? `• NEXT ${s.next_service_date}` : ""}</div>
+                      <div className="text-xs text-muted-foreground">{fmtDate(s.service_date)} • {s.service_items?.length ?? 0} ITEMS {s.next_service_date ? `• NEXT ${fmtDate(s.next_service_date)}` : ""}</div>
                     </div>
                     <div className="text-right">
                       <div className="font-semibold">{fmtMoney(total)}</div>

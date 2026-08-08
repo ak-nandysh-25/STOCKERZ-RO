@@ -2,7 +2,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Card, Empty, Field, Input, Modal, PageHeader, Table, Td, Th, Select } from "@/components/ui-kit";
-import { fmtMoney, upper } from "@/lib/app-utils";
+import { fmtMoney, upper, fmtDate } from "@/lib/app-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   AlertTriangle,
@@ -767,9 +767,9 @@ function AdminControlCenter() {
                           )}
                         </Td>
                         <Td>{tech ? tech.name : "Unassigned"}</Td>
-                        <Td>{svc.service_date.slice(0, 10)}</Td>
-                        <Td className="text-amber-400 font-medium">
-                          {svc.next_service_date ? svc.next_service_date.slice(0, 10) : "—"}
+                        <Td>{fmtDate(svc.service_date)}</Td>
+                        <Td className="text-amber-400 font-medium font-mono">
+                          {fmtDate(svc.next_service_date)}
                         </Td>
                       </tr>
                     );

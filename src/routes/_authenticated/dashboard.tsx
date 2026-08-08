@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, PageHeader } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink } from "@/lib/app-utils";
+import { fmtMoney, upper, waLink, fmtDate } from "@/lib/app-utils";
 import { AlertTriangle, Droplet, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle, BarChart2 } from "lucide-react";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { motion } from "framer-motion";
@@ -209,10 +209,10 @@ function Dashboard() {
                 <li key={s.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 uppercase-data">
                   <div>
                     <div className="font-medium text-white">{s.customer_name}</div>
-                    <div className="text-xs text-muted-foreground">Due {s.next_service_date}</div>
+                    <div className="text-xs text-muted-foreground font-mono">Due {fmtDate(s.next_service_date)}</div>
                   </div>
                   {s.phone && (
-                    <a href={waLink(s.phone, `Hello ${upper(s.customer_name)}, your RO filter change is due on ${s.next_service_date}. Please book a service.`)} target="_blank" rel="noreferrer" className="rounded-lg bg-success/20 p-2 text-success hover:bg-success/30">
+                    <a href={waLink(s.phone, `Hello ${upper(s.customer_name)}, your RO filter change is due on ${fmtDate(s.next_service_date)}. Please book a service.`)} target="_blank" rel="noreferrer" className="rounded-lg bg-success/20 p-2 text-success hover:bg-success/30">
                       <MessageCircle className="h-4 w-4" />
                     </a>
                   )}

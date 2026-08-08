@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button, Card, Empty, Field, Input, PageHeader, Select, Table, Td, Th } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink } from "@/lib/app-utils";
+import { fmtMoney, upper, waLink, fmtDate } from "@/lib/app-utils";
 import { useState } from "react";
 import { Plus, Trash2, MessageCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -119,18 +119,18 @@ function ServicePage() {
               const total = (s.service_items ?? []).reduce((sum: number, it: any) => sum + Number(it.price), 0);
               return (
                 <tr key={s.id} className="hover:bg-white/5">
-                  <Td>{s.service_date}</Td>
+                  <Td>{fmtDate(s.service_date)}</Td>
                   <Td className="font-medium">{s.customer_name}</Td>
                   <Td>{s.service_type}</Td>
                   <Td>{s.service_items?.length ?? 0}</Td>
                   <Td>{fmtMoney(total)}</Td>
-                  <Td className={s.next_service_date ? "text-warning" : ""}>{s.next_service_date ?? "—"}</Td>
+                  <Td className={s.next_service_date ? "text-warning font-mono" : ""}>{fmtDate(s.next_service_date)}</Td>
                   <Td className="text-right">
                     <Link to="/service-invoice/$id" params={{ id: s.id }} className="mr-2 inline-flex items-center gap-1 rounded bg-primary/15 px-2 py-1 text-xs text-primary hover:bg-primary/25">
                       <FileText className="h-3 w-3" /> Invoice
                     </Link>
                     {s.phone && s.next_service_date && (
-                      <a href={waLink(s.phone, `Hello ${upper(s.customer_name)}, your RO filter change is due on ${s.next_service_date}.`)} target="_blank" rel="noreferrer" className="mr-2 inline-flex rounded bg-success/15 p-1.5 text-success"><MessageCircle className="h-3.5 w-3.5" /></a>
+                      <a href={waLink(s.phone, `Hello ${upper(s.customer_name)}, your RO filter change is due on ${fmtDate(s.next_service_date)}.`)} target="_blank" rel="noreferrer" className="mr-2 inline-flex rounded bg-success/15 p-1.5 text-success"><MessageCircle className="h-3.5 w-3.5" /></a>
                     )}
                     <button onClick={() => confirm("Delete?") && del.mutate(s.id)} className="rounded p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></button>
                   </Td>
