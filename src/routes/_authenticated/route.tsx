@@ -115,7 +115,12 @@ function Shell() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data: existingShop } = await supabase.from("shops").select("*").maybeSingle();
+      const { data: existingShop } = await supabase
+        .from("shops")
+        .select("*")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
       if (existingShop) return existingShop;
 
       // If shop account does not exist or was deleted, sign out immediately

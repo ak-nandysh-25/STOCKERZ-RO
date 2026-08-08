@@ -52,7 +52,13 @@ function Dashboard() {
   const { data: shop } = useQuery({
     queryKey: ["shop"],
     queryFn: async () => {
-      const { data } = await supabase.from("shops").select("*").maybeSingle();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase
+        .from("shops")
+        .select("*")
+        .eq("owner_id", user.id)
+        .maybeSingle();
       return data;
     },
   });
