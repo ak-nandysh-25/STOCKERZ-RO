@@ -429,7 +429,7 @@ function StockSaleForm({ onDone }: { onDone: () => void }) {
       <Field label={`Quantity${selected ? ` (max ${selected.qty})` : ""}`}><Input type="number" min={1} value={f.qty} onChange={e => setF({ ...f, qty: Number(e.target.value) })} /></Field>
       <Field label="Date"><Input type="date" value={f.sale_date} onChange={e => setF({ ...f, sale_date: e.target.value })} /></Field>
       <Field label="Customer name"><Input value={f.customer_name} onChange={e => setF({ ...f, customer_name: e.target.value })} className="uppercase-data" /></Field>
-      <Field label="Phone"><Input value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} /></Field>
+      <Field label="Phone"><Input maxLength={10} value={f.phone} onChange={e => setF({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} placeholder="10-digit mobile number" className="font-mono tracking-wider" /></Field>
       <Field label="Place / Address"><Input value={f.address} onChange={e => setF({ ...f, address: e.target.value })} className="uppercase-data" /></Field>
       <div className="md:col-span-2 flex justify-end">
         <Button disabled={submit.isPending}>
@@ -521,7 +521,7 @@ function ManualSaleForm({ source, onDone }: { source: "manual" | "office"; onDon
         />
       </Field>
       <Field label="Phone number">
-        <Input value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} placeholder="10-digit mobile number" />
+        <Input maxLength={10} value={f.phone} onChange={e => setF({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} placeholder="10-digit mobile number" className="font-mono tracking-wider" />
       </Field>
       <Field label="Place / Address">
         <Input

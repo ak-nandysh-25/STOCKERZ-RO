@@ -804,9 +804,11 @@ function AdminControlCenter() {
 
             <Field label="Phone Number">
               <Input
+                maxLength={10}
                 value={newShopContact}
-                onChange={(e) => setNewShopContact(e.target.value)}
-                placeholder="+91 98765 43210"
+                onChange={(e) => setNewShopContact(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                placeholder="10-digit mobile number"
+                className="font-mono tracking-wider"
               />
             </Field>
           </div>
@@ -871,9 +873,11 @@ function AdminControlCenter() {
 
             <Field label="Contact Phone">
               <Input
+                maxLength={10}
                 value={editContact}
-                onChange={(e) => setEditContact(e.target.value)}
-                placeholder="+91 98765 43210"
+                onChange={(e) => setEditContact(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                placeholder="10-digit mobile number"
+                className="font-mono tracking-wider"
               />
             </Field>
           </div>

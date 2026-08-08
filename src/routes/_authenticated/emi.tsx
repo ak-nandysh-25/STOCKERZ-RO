@@ -45,7 +45,7 @@ function Page() {
       <Card className="mb-6">
         <form onSubmit={e => { e.preventDefault(); add.mutate(); }} className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <Field label="Customer name"><Input required value={f.customer_name} onChange={e => setF({ ...f, customer_name: e.target.value })} className="uppercase-data" /></Field>
-          <Field label="Phone"><Input value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} /></Field>
+          <Field label="Phone"><Input maxLength={10} value={f.phone} onChange={e => setF({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} placeholder="10-digit mobile number" className="font-mono tracking-wider" /></Field>
           <Field label="Machine / Model"><Input required value={f.model} onChange={e => setF({ ...f, model: e.target.value })} className="uppercase-data" /></Field>
           <Field label="Total amount"><Input type="number" step="0.01" min={0} value={f.total_amount} onChange={e => setF({ ...f, total_amount: Number(e.target.value) })} /></Field>
           <Field label="Down payment"><Input type="number" step="0.01" min={0} value={f.down_payment} onChange={e => setF({ ...f, down_payment: Number(e.target.value) })} /></Field>

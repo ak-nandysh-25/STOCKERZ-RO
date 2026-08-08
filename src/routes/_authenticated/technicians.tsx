@@ -39,7 +39,7 @@ function Page() {
       <Card className="mb-6">
         <form onSubmit={e => { e.preventDefault(); add.mutate(); }} className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <Field label="Name"><Input required value={f.name} onChange={e => setF({ ...f, name: e.target.value })} className="uppercase-data" /></Field>
-          <Field label="Phone"><Input value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} /></Field>
+          <Field label="Phone"><Input maxLength={10} value={f.phone} onChange={e => setF({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} placeholder="10-digit mobile number" className="font-mono tracking-wider" /></Field>
           <Field label="Specialization"><Input value={f.specialization} onChange={e => setF({ ...f, specialization: e.target.value })} className="uppercase-data" /></Field>
           <div className="flex items-end"><Button className="w-full" disabled={add.isPending}>Add technician</Button></div>
         </form>

@@ -73,7 +73,7 @@ function ServicePage() {
       <Card className="mb-6">
         <form onSubmit={e => { e.preventDefault(); submit.mutate(); }} className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Field label="Customer name"><Input required value={f.customer_name} onChange={e => setF({ ...f, customer_name: e.target.value })} className="uppercase-data" /></Field>
-          <Field label="Phone"><Input required value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} /></Field>
+          <Field label="Phone"><Input required maxLength={10} value={f.phone} onChange={e => setF({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} placeholder="10-digit mobile number" className="font-mono tracking-wider" /></Field>
           <Field label="Service type"><Input value={f.service_type} onChange={e => setF({ ...f, service_type: e.target.value })} className="uppercase-data" /></Field>
           <Field label="Technician (optional)"><Select value={f.technician_id} onChange={e => setF({ ...f, technician_id: e.target.value })}>
             <option value="">—</option>
