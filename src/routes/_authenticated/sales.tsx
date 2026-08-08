@@ -428,9 +428,9 @@ function StockSaleForm({ onDone }: { onDone: () => void }) {
       <Field label="Price (₹)"><Input type="number" step="0.01" min={0} value={f.price} onChange={e => setF({ ...f, price: Number(e.target.value) })} /></Field>
       <Field label={`Quantity${selected ? ` (max ${selected.qty})` : ""}`}><Input type="number" min={1} value={f.qty} onChange={e => setF({ ...f, qty: Number(e.target.value) })} /></Field>
       <Field label="Date"><Input type="date" value={f.sale_date} onChange={e => setF({ ...f, sale_date: e.target.value })} /></Field>
-      <Field label="Customer name (optional)"><Input value={f.customer_name} onChange={e => setF({ ...f, customer_name: e.target.value })} className="uppercase-data" /></Field>
-      <Field label="Phone (optional)"><Input value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} /></Field>
-      <Field label="Place / Address (optional)"><Input value={f.address} onChange={e => setF({ ...f, address: e.target.value })} className="uppercase-data" /></Field>
+      <Field label="Customer name"><Input value={f.customer_name} onChange={e => setF({ ...f, customer_name: e.target.value })} className="uppercase-data" /></Field>
+      <Field label="Phone"><Input value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} /></Field>
+      <Field label="Place / Address"><Input value={f.address} onChange={e => setF({ ...f, address: e.target.value })} className="uppercase-data" /></Field>
       <div className="md:col-span-2 flex justify-end">
         <Button disabled={submit.isPending}>
           {submit.isPending ? "Recording..." : "Record Stock Sale"}
@@ -512,7 +512,7 @@ function ManualSaleForm({ source, onDone }: { source: "manual" | "office"; onDon
       <Field label="Quantity">
         <Input type="number" min={1} value={f.qty} onChange={e => setF({ ...f, qty: Number(e.target.value) })} />
       </Field>
-      <Field label="Customer / Company name (optional)">
+      <Field label="Customer / Company name">
         <Input
           value={f.customer_name}
           onChange={e => setF({ ...f, customer_name: e.target.value })}
@@ -520,10 +520,10 @@ function ManualSaleForm({ source, onDone }: { source: "manual" | "office"; onDon
           className="uppercase-data"
         />
       </Field>
-      <Field label="Phone number (optional)">
+      <Field label="Phone number">
         <Input value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} placeholder="10-digit mobile number" />
       </Field>
-      <Field label="Place / Address (optional)">
+      <Field label="Place / Address">
         <Input
           value={f.address}
           onChange={e => setF({ ...f, address: e.target.value })}
