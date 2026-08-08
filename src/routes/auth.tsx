@@ -79,6 +79,16 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
+        if (password.length < 8) {
+          toast.error("Password must be at least 8 characters");
+          setLoading(false);
+          return;
+        }
+        if (!/[^A-Za-z0-9]/.test(password)) {
+          toast.error("Password must contain at least 1 special character (e.g. !@#$%^&*)");
+          setLoading(false);
+          return;
+        }
         if (password !== confirmPassword) {
           toast.error("Passwords do not match");
           setLoading(false);
@@ -297,6 +307,11 @@ function AuthPage() {
                   {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {mode === "signup" && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Must be at least 8 characters and contain at least 1 special character (e.g. !@#$%^&*)
+                </p>
+              )}
             </Field>
           )}
 
@@ -342,20 +357,9 @@ function AuthPage() {
 
         <div className="mt-6 text-sm">
           {mode === "login" ? (
-            <div className="flex items-center justify-between">
-              <button onClick={() => setMode("signup")} className="text-muted-foreground hover:text-foreground">
-                New to STOCKERZ RO? <span className="text-foreground font-semibold">Register</span>
-              </button>
-              <button
-                onClick={() => {
-                  setMode("forgot");
-                  setResetSent(false);
-                }}
-                className="text-xs text-muted-foreground hover:text-primary transition"
-              >
-                Forgot password?
-              </button>
-            </div>
+            <button onClick={() => setMode("signup")} className="text-muted-foreground hover:text-foreground">
+              New to STOCKERZ RO? <span className="text-foreground font-semibold">Register</span>
+            </button>
           ) : mode === "signup" ? (
             <button onClick={() => setMode("login")} className="text-muted-foreground hover:text-foreground">
               Already have a shop? <span className="text-foreground font-semibold">Sign in</span>
