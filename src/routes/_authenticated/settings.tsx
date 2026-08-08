@@ -190,9 +190,11 @@ function Page() {
           </Field>
           <Field label="Contact number">
             <Input
+              maxLength={10}
               value={f.contact}
-              onChange={(e) => setF({ ...f, contact: e.target.value })}
-              placeholder="+91 98765 43210"
+              onChange={(e) => setF({ ...f, contact: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+              placeholder="10-digit mobile number"
+              className="font-mono tracking-wider"
             />
           </Field>
           <Field label="Email">

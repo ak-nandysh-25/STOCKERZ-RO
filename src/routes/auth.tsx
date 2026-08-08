@@ -44,6 +44,7 @@ function AuthPage() {
   const hasMinLength = password.length >= 8;
   const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const isValidContact = shop.contact.replace(/\D/g, "").length === 10;
 
   useEffect(() => {
     if (search.mode) {
@@ -83,6 +84,12 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
+        const cleanContact = shop.contact.replace(/\D/g, "");
+        if (cleanContact.length !== 10) {
+          toast.error("Contact number must be exactly 10 digits");
+          setLoading(false);
+          return;
+        }
         if (!hasMinLength) {
           toast.error("Password must be at least 8 characters");
           setLoading(false);
@@ -241,10 +248,22 @@ function AuthPage() {
                 <input
                   type="tel"
                   required
+                  maxLength={10}
                   value={shop.contact}
-                  onChange={(e) => setShop({ ...shop, contact: e.target.value })}
-                  className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+                  onChange={(e) => setShop({ ...shop, contact: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                  placeholder="10-digit mobile number"
+                  className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary font-mono tracking-wider"
                 />
+                {shop.contact.length > 0 && (
+                  <div className="mt-1 text-xs">
+                    <div className={`flex items-center gap-1.5 transition ${isValidContact ? "text-emerald-400 font-medium" : "text-amber-400"}`}>
+                      <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${isValidContact ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-amber-500/20 text-amber-400 font-bold"}`}>
+                        {isValidContact ? "✓" : "!"}
+                      </span>
+                      <span>{isValidContact ? "Valid 10-digit contact number" : `${shop.contact.length}/10 digits`}</span>
+                    </div>
+                  </div>
+                )}
               </Field>
               <Field label="GST number (optional)">
                 <input
