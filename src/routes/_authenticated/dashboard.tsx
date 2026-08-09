@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, PageHeader } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink, fmtDate } from "@/lib/app-utils";
+import { fmtMoney, upper, waLink, fmtDate, useShop } from "@/lib/app-utils";
 import { AlertTriangle, Droplet, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle, BarChart2 } from "lucide-react";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { motion } from "framer-motion";
@@ -49,19 +49,7 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 function Dashboard() {
-  const { data: shop } = useQuery({
-    queryKey: ["shop"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data } = await supabase
-        .from("shops")
-        .select("*")
-        .eq("owner_id", user.id)
-        .maybeSingle();
-      return data;
-    },
-  });
+  const { data: shop } = useShop();
 
   const { data: stats } = useQuery({
     queryKey: ["dashboard"],

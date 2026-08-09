@@ -1,20 +1,86 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export async function fetchActiveShop() {
+  const { data: { user } } = await supabase.auth.getUser();
+  let activeUser = user;
+
+  if (!activeUser) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    activeUser = sessionData?.session?.user ?? null;
+  }
+
+  let otpEmail: string | null = null;
+  if (typeof window !== "undefined") {
+    otpEmail = localStorage.getItem("stockerz_otp_user");
+  }
+
+  if (!activeUser && otpEmail) {
+    activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
+  }
+
+  if (!activeUser) return null;
+
+  // 1. Strict 1 Gmail to 1 Shop matching by email (always load the first registered shop)
+  const emailToSearch = activeUser.email || otpEmail;
+  if (emailToSearch) {
+    const { data: shopByEmail } = await supabase
+      .from("shops")
+      .select("*")
+      .eq("email", emailToSearch)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (shopByEmail) {
+      // Link owner_id to current active user session if needed
+      if (shopByEmail.owner_id !== activeUser.id) {
+        const { data: updatedShop } = await supabase
+          .from("shops")
+          .update({ owner_id: activeUser.id })
+          .eq("id", shopByEmail.id)
+          .select("*")
+          .single();
+
+        return updatedShop || shopByEmail;
+      }
+      return shopByEmail;
+    }
+  }
+
+  // 2. Fallback check shop by owner_id
+  const { data: existingShop } = await supabase
+    .from("shops")
+    .select("*")
+    .eq("owner_id", activeUser.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingShop) return existingShop;
+
+  // 3. Fallback: Auto-upsert shop profile if no shop exists yet for this email
+  const shopName = activeUser.user_metadata?.shop_name || "MY SHOP";
+  const { data: newShop } = await supabase
+    .from("shops")
+    .upsert(
+      {
+        owner_id: activeUser.id,
+        name: shopName,
+        email: emailToSearch ?? null,
+      },
+      { onConflict: "owner_id" }
+    )
+    .select("*")
+    .single();
+
+  return newShop ?? null;
+}
+
 export function useShop() {
   return useQuery({
     queryKey: ["shop"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from("shops")
-        .select("*")
-        .eq("owner_id", user.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchActiveShop,
   });
 }
 

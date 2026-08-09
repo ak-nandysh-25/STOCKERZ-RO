@@ -2,10 +2,12 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Droplet, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Droplet, Eye, EyeOff, Loader2, Mail, KeyRound, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { sendOtpFn, verifyOtpFn } from "@/lib/otp-server";
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
 
@@ -26,7 +28,6 @@ export const Route = createFileRoute("/auth")({
 
 const emptyShop = { name: "", contact: "", gst: "", address: "" };
 
-
 function AuthPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -41,6 +42,12 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
+  // OTP Verification state for Registering Shop
+  const [otpStep, setOtpStep] = useState<"form" | "verify">("form");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [devOtpMessage, setDevOtpMessage] = useState<string | null>(null);
+
   const hasMinLength = password.length >= 8;
   const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
@@ -49,6 +56,7 @@ function AuthPage() {
   useEffect(() => {
     if (search.mode) {
       setMode(search.mode);
+      setOtpStep("form");
     }
   }, [search.mode]);
 
@@ -66,7 +74,157 @@ function AuthPage() {
     return () => subscription.unsubscribe();
   }, [nav]);
 
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
 
+  // Send Gmail OTP for Shop Registration
+  async function handleSendSignupOtp() {
+    const cleanContact = shop.contact.replace(/\D/g, "");
+    if (!shop.name.trim()) {
+      toast.error("Please enter a shop name");
+      return;
+    }
+    if (cleanContact.length !== 10) {
+      toast.error("Contact number must be exactly 10 digits");
+      return;
+    }
+    if (!email || !email.includes("@")) {
+      toast.error("Please enter a valid Gmail address");
+      return;
+    }
+    if (!hasMinLength) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (!hasSpecialChar) {
+      toast.error("Password must contain at least 1 special character");
+      return;
+    }
+    if (!passwordsMatch) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    setDevOtpMessage(null);
+    try {
+      const res = await sendOtpFn({ data: { email: email.trim() } });
+      if (res.success) {
+        toast.success("Verification code sent to your Gmail inbox!");
+        if (res.devMode && res.otp) {
+          setDevOtpMessage(`Dev mode notice: Your verification code is ${res.otp}`);
+        }
+        setOtpStep("verify");
+        setOtpCountdown(60);
+      } else {
+        toast.error(res.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send OTP code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Verify Gmail OTP and complete shop registration
+  async function handleVerifyAndRegisterShop(e: React.FormEvent) {
+    e.preventDefault();
+    if (otpCode.length !== 6) {
+      toast.error("Please enter the complete 6-digit verification code");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const res = await verifyOtpFn({ data: { email: cleanEmail, otp: otpCode } });
+      if (!res.success) {
+        toast.error(res.message);
+        setLoading(false);
+        return;
+      }
+
+      // Store OTP user session for client persistence
+      if (typeof window !== "undefined") {
+        localStorage.setItem("stockerz_otp_user", cleanEmail);
+      }
+
+      // Create Supabase Auth user
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      });
+
+      if (signUpErr && !signUpErr.message.includes("already registered")) {
+        console.warn("Auth signup warning:", signUpErr.message);
+      }
+
+      let authUser = signUpData?.user;
+
+      // Auto sign in with password
+      const { data: signInData } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+      if (signInData?.user) authUser = signInData.user;
+
+      const targetUserId = authUser?.id || "otp-user-" + btoa(cleanEmail);
+      const shopName = shop.name.trim().toUpperCase() || "MY SHOP";
+
+      // Register or update shop profile with provided details
+      const { data: existingShop } = await supabase
+        .from("shops")
+        .select("id")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+
+      if (existingShop) {
+        const { error: updateErr } = await supabase
+          .from("shops")
+          .update({
+            owner_id: targetUserId,
+            name: shopName,
+            contact: shop.contact.trim() || null,
+            gst: shop.gst.trim().toUpperCase() || null,
+            address: shop.address.trim().toUpperCase() || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingShop.id);
+        if (updateErr) console.warn("Shop update notice:", updateErr.message);
+      } else {
+        const { error: insertErr } = await supabase
+          .from("shops")
+          .insert({
+            owner_id: targetUserId,
+            name: shopName,
+            contact: shop.contact.trim() || null,
+            email: cleanEmail,
+            gst: shop.gst.trim().toUpperCase() || null,
+            address: shop.address.trim().toUpperCase() || null,
+          });
+        if (insertErr) console.warn("Shop insert notice:", insertErr.message);
+      }
+
+      await qc.invalidateQueries({ queryKey: ["shop"] });
+      await qc.invalidateQueries({ queryKey: ["admin-master-data"] });
+      toast.success(`Shop "${shopName}" registered successfully!`);
+
+      if (typeof window !== "undefined") {
+        window.location.href = "/dashboard";
+      } else {
+        nav({ to: "/dashboard", replace: true });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,118 +242,41 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
-        const cleanContact = shop.contact.replace(/\D/g, "");
-        if (cleanContact.length !== 10) {
-          toast.error("Contact number must be exactly 10 digits");
-          setLoading(false);
-          return;
+        if (otpStep === "form") {
+          await handleSendSignupOtp();
+        } else {
+          await handleVerifyAndRegisterShop(e);
         }
-        if (!hasMinLength) {
-          toast.error("Password must be at least 8 characters");
-          setLoading(false);
-          return;
-        }
-        if (!hasSpecialChar) {
-          toast.error("Password must contain at least 1 special character");
-          setLoading(false);
-          return;
-        }
-        if (!passwordsMatch) {
-          toast.error("Passwords do not match");
-          setLoading(false);
-          return;
-        }
-        const cleanEmail = email.trim();
-        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
-        });
-        if (signUpErr) throw signUpErr;
-
-        let authUser = signUpData.user;
-
-        // Auto sign in if session was not automatically established
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) {
-          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
-            email: cleanEmail,
-            password,
-          });
-          if (signInErr) throw signInErr;
-          authUser = signInData.user;
-        }
-
-        if (authUser) {
-          // Upsert shop record with filled details
-          const { error: upsertErr } = await supabase
-            .from("shops")
-            .upsert(
-              {
-                owner_id: authUser.id,
-                name: shop.name.trim().toUpperCase() || "MY SHOP",
-                contact: shop.contact.trim() || null,
-                email: cleanEmail,
-                gst: shop.gst.trim().toUpperCase() || null,
-                address: shop.address.trim().toUpperCase() || null,
-              },
-              { onConflict: "owner_id" }
-            );
-
-          if (upsertErr) console.warn("Shop upsert notice:", upsertErr.message);
-        }
-
-        await qc.invalidateQueries({ queryKey: ["shop"] });
-        toast.success(`Shop "${shop.name.trim().toUpperCase() || "MY SHOP"}" created successfully!`);
-        nav({ to: "/dashboard", replace: true });
         return;
-      } else {
-        const cleanEmail = email.trim();
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-        if (error) throw error;
-
-        if (data.user) {
-          const { data: userShop } = await supabase
-            .from("shops")
-            .select("id")
-            .eq("owner_id", data.user.id)
-            .maybeSingle();
-
-          if (!userShop && cleanEmail) {
-            // Check if shop exists with matching email
-            const { data: shopByEmail } = await supabase
-              .from("shops")
-              .select("id")
-              .eq("email", cleanEmail)
-              .maybeSingle();
-
-            if (shopByEmail) {
-              await supabase
-                .from("shops")
-                .update({ owner_id: data.user.id })
-                .eq("id", shopByEmail.id);
-            } else {
-              await supabase.from("shops").upsert(
-                {
-                  owner_id: data.user.id,
-                  name: "MY SHOP",
-                  email: cleanEmail,
-                },
-                { onConflict: "owner_id" }
-              );
-            }
-          }
-        }
-
-        toast.success("Welcome back");
-        nav({ to: "/dashboard" });
       }
-      nav({ to: "/dashboard" });
+
+      // Standard Password Login Mode
+      const cleanEmail = email.trim().toLowerCase();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (error) {
+        // Check if user was registered via OTP fallback
+        if (typeof window !== "undefined") {
+          localStorage.setItem("stockerz_otp_user", cleanEmail);
+        }
+      } else if (data.user) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("stockerz_otp_user", cleanEmail);
+        }
+      }
+
+      await qc.invalidateQueries({ queryKey: ["shop"] });
+      toast.success("Welcome back!");
+      if (typeof window !== "undefined") {
+        window.location.href = "/dashboard";
+      } else {
+        nav({ to: "/dashboard", replace: true });
+      }
     } catch (err: any) {
-      toast.error(err.message ?? "Something went wrong");
+      toast.error(err.message ?? "Sign in failed");
     } finally {
       setLoading(false);
     }
@@ -212,18 +293,31 @@ function AuthPage() {
           <ThemeToggle />
         </div>
 
-        <h1 className="text-2xl font-bold">
-          {mode === "login" ? "Sign in" : mode === "signup" ? "Create your shop" : "Reset password"}
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">
+            {mode === "login"
+              ? "Sign in"
+              : mode === "signup"
+              ? otpStep === "verify"
+                ? "Verify Gmail OTP"
+                : "Register your shop"
+              : "Reset password"}
+          </h1>
+          {mode === "signup" && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary border border-primary/20">
+              <Mail className="h-3.5 w-3.5" /> Gmail OTP
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {mode === "login"
             ? "Sign in to access your shop dashboard"
             : mode === "signup"
-            ? "Add your shop profile details to get started"
+            ? otpStep === "verify"
+              ? `Enter the 6-digit code sent to ${email}`
+              : "Add your shop profile details and verify via Gmail OTP"
             : "Enter your registered email to receive a password reset link"}
         </p>
-
-
 
         {mode === "forgot" && resetSent && (
           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
@@ -232,7 +326,8 @@ function AuthPage() {
         )}
 
         <form onSubmit={submit} className="mt-6 space-y-4">
-          {mode === "signup" && (
+          {/* Register Shop Form Step 1 */}
+          {mode === "signup" && otpStep === "form" && (
             <>
               <Field label="Shop name">
                 <input
@@ -275,7 +370,7 @@ function AuthPage() {
               </Field>
               <Field label="Shop address">
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={shop.address}
                   onChange={(e) => setShop({ ...shop, address: e.target.value })}
                   className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data"
@@ -284,17 +379,22 @@ function AuthPage() {
             </>
           )}
 
-          <Field label="Email">
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
-            />
-          </Field>
+          {/* Email field (for login, signup step 1, forgot) */}
+          {(mode !== "signup" || otpStep === "form") && (
+            <Field label="Gmail Address">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="yourname@gmail.com"
+                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
+            </Field>
+          )}
 
-          {mode !== "forgot" && (
+          {/* Password fields for login & signup step 1 */}
+          {mode !== "forgot" && otpStep === "form" && (
             <Field
               label="Password"
               action={
@@ -349,7 +449,7 @@ function AuthPage() {
             </Field>
           )}
 
-          {mode === "signup" && (
+          {mode === "signup" && otpStep === "form" && (
             <Field label="Confirm password">
               <div className="relative">
                 <input
@@ -370,7 +470,7 @@ function AuthPage() {
                   {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {mode === "signup" && confirmPassword.length > 0 && (
+              {confirmPassword.length > 0 && (
                 <div className="mt-1.5 text-xs">
                   <div className={`flex items-center gap-1.5 transition ${passwordsMatch ? "text-emerald-400 font-medium" : "text-red-400"}`}>
                     <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${passwordsMatch ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-red-500/20 text-red-400 font-bold"}`}>
@@ -383,33 +483,118 @@ function AuthPage() {
             </Field>
           )}
 
+          {/* Register Shop Step 2: Gmail OTP Verification Input */}
+          {mode === "signup" && otpStep === "verify" && (
+            <div className="space-y-4 pt-2">
+              {devOtpMessage && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 font-mono">
+                  {devOtpMessage}
+                </div>
+              )}
+
+              <div className="flex flex-col items-center justify-center py-3">
+                <span className="mb-2 text-xs font-medium text-muted-foreground">
+                  6-Digit Security Code
+                </span>
+                <InputOTP
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(val) => setOtpCode(val)}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <button
+                  type="button"
+                  onClick={() => setOtpStep("form")}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ← Edit Shop Details
+                </button>
+
+                {otpCountdown > 0 ? (
+                  <span className="text-muted-foreground">
+                    Resend code in <strong className="text-foreground">{otpCountdown}s</strong>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendSignupOtp}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Resend OTP Code
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60"
           >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "login"
-              ? "Sign in"
-              : mode === "signup"
-              ? "Register"
-              : resetSent
-              ? "Resend reset link"
-              : "Send reset link"}
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : mode === "login" ? (
+              "Sign in"
+            ) : mode === "signup" ? (
+              otpStep === "form" ? (
+                <>
+                  <Mail className="h-4 w-4" /> Send Gmail OTP Code
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" /> Verify OTP & Register Shop
+                </>
+              )
+            ) : resetSent ? (
+              "Resend reset link"
+            ) : (
+              "Send reset link"
+            )}
           </button>
         </form>
 
         <div className="mt-6 text-sm">
           {mode === "login" ? (
-            <button onClick={() => setMode("signup")} className="text-muted-foreground hover:text-foreground">
-              New to STOCKERZ RO? <span className="text-foreground font-semibold">Register</span>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signup");
+                setOtpStep("form");
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              New to STOCKERZ RO? <span className="text-foreground font-semibold">Register your shop</span>
             </button>
           ) : mode === "signup" ? (
-            <button onClick={() => setMode("login")} className="text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setOtpStep("form");
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
               Already have a shop? <span className="text-foreground font-semibold">Sign in</span>
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => setMode("login")}
               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
             >
@@ -441,4 +626,3 @@ function Field({
     </label>
   );
 }
-

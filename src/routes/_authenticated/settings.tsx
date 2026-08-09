@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Upload, Loader2, Trash2 } from "lucide-react";
 
+import { useShop } from "@/lib/app-utils";
+
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Shop Profile — STOCKERZ RO" }] }),
   component: Page,
@@ -13,10 +15,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function Page() {
   const qc = useQueryClient();
-  const { data: shop } = useQuery({
-    queryKey: ["shop"],
-    queryFn: async () => (await supabase.from("shops").select("*").maybeSingle()).data,
-  });
+  const { data: shop } = useShop();
 
   const [f, setF] = useState({ name: "", contact: "", email: "", gst: "", address: "", logo_url: "" });
   const [uploading, setUploading] = useState(false);
@@ -37,10 +36,17 @@ function Page() {
   const save = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+      let activeUserId = user?.id || shop?.owner_id;
+
+      if (!activeUserId && typeof window !== "undefined") {
+        const otpEmail = localStorage.getItem("stockerz_otp_user");
+        if (otpEmail) activeUserId = "otp-user-" + btoa(otpEmail);
+      }
+
+      if (!activeUserId) throw new Error("User not authenticated");
 
       const payload = {
-        owner_id: user.id,
+        owner_id: activeUserId,
         name: f.name.toUpperCase(),
         contact: f.contact,
         email: f.email,
