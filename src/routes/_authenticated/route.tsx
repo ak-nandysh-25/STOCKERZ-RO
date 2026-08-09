@@ -30,49 +30,39 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import { upper, fetchActiveShop } from "@/lib/app-utils";
+import { upper } from "@/lib/app-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    try {
-      // If URL has OAuth callback hash or query code, give Supabase SDK time to process session
-      if (typeof window !== "undefined") {
-        const hasHash = window.location.hash.includes("access_token");
-        const hasCode = window.location.search.includes("code=");
-        if (hasHash || hasCode) {
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData.session?.user) {
-            return { user: sessionData.session.user };
-          }
+    // If URL has OAuth callback hash or query code, give Supabase SDK time to process session
+    if (typeof window !== "undefined") {
+      const hasHash = window.location.hash.includes("access_token");
+      const hasCode = window.location.search.includes("code=");
+      if (hasHash || hasCode) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session?.user) {
+          return { user: sessionData.session.user };
         }
       }
+    }
 
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData?.user) return { user: userData.user };
+    const { data } = await supabase.auth.getUser();
+    if (data?.user) return { user: data.user };
 
-      // Fallback check for active session
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user) {
-        return { user: sessionData.session.user };
-      }
+    // Fallback check for active session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session?.user) {
+      return { user: sessionData.session.user };
+    }
 
-      // OTP Auth session check
-      if (typeof window !== "undefined") {
-        const otpEmail = localStorage.getItem("stockerz_otp_user");
-        if (otpEmail) {
-          return { user: { id: "otp-user-" + btoa(otpEmail), email: otpEmail } };
-        }
-      }
-    } catch (err) {
-      console.warn("Auth check notice:", err);
-      if (typeof window !== "undefined") {
-        const otpEmail = localStorage.getItem("stockerz_otp_user");
-        if (otpEmail) {
-          return { user: { id: "otp-user-" + btoa(otpEmail), email: otpEmail } };
-        }
+    // OTP Auth session check
+    if (typeof window !== "undefined") {
+      const otpEmail = localStorage.getItem("stockerz_otp_user");
+      if (otpEmail) {
+        return { user: { id: "otp-user-" + btoa(otpEmail), email: otpEmail } };
       }
     }
 
@@ -129,7 +119,73 @@ function Shell() {
   // Load shop profile for active user (resolves by owner_id, email link, or auto-creation)
   const { data: shop } = useQuery({
     queryKey: ["shop"],
-    queryFn: fetchActiveShop,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      let activeUser = user;
+
+      if (!activeUser) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        activeUser = sessionData?.session?.user ?? null;
+      }
+
+      let otpEmail: string | null = null;
+      if (typeof window !== "undefined") {
+        otpEmail = localStorage.getItem("stockerz_otp_user");
+      }
+
+      if (!activeUser && otpEmail) {
+        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
+      }
+
+      if (!activeUser) return null;
+
+      // 1. Check shop by owner_id
+      const { data: existingShop } = await supabase
+        .from("shops")
+        .select("*")
+        .eq("owner_id", activeUser.id)
+        .maybeSingle();
+
+      if (existingShop) return existingShop;
+
+      // 2. If not found by owner_id, check by email link
+      const emailToSearch = activeUser.email || otpEmail;
+      if (emailToSearch) {
+        const { data: shopByEmail } = await supabase
+          .from("shops")
+          .select("*")
+          .eq("email", emailToSearch)
+          .maybeSingle();
+
+        if (shopByEmail) {
+          const { data: updatedShop } = await supabase
+            .from("shops")
+            .update({ owner_id: activeUser.id })
+            .eq("id", shopByEmail.id)
+            .select("*")
+            .single();
+
+          if (updatedShop) return updatedShop;
+        }
+      }
+
+      // 3. Auto-upsert shop profile so valid logged-in users are never blocked
+      const shopName = activeUser.user_metadata?.shop_name || "MY SHOP";
+      const { data: newShop } = await supabase
+        .from("shops")
+        .upsert(
+          {
+            owner_id: activeUser.id,
+            name: shopName,
+            email: emailToSearch ?? null,
+          },
+          { onConflict: "owner_id" }
+        )
+        .select("*")
+        .single();
+
+      return newShop ?? null;
+    },
   });
 
   async function signOut() {

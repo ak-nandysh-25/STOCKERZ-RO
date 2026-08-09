@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, PageHeader } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink, fmtDate, useShop } from "@/lib/app-utils";
+import { fmtMoney, upper, waLink, fmtDate } from "@/lib/app-utils";
 import { AlertTriangle, Droplet, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle, BarChart2 } from "lucide-react";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { motion } from "framer-motion";
@@ -49,7 +49,49 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 function Dashboard() {
-  const { data: shop } = useShop();
+  const { data: shop } = useQuery({
+    queryKey: ["shop"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      let activeUser = user;
+
+      if (!activeUser) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        activeUser = sessionData?.session?.user ?? null;
+      }
+
+      let otpEmail: string | null = null;
+      if (typeof window !== "undefined") {
+        otpEmail = localStorage.getItem("stockerz_otp_user");
+      }
+
+      if (!activeUser && otpEmail) {
+        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
+      }
+
+      if (!activeUser) return null;
+
+      const { data: existingShop } = await supabase
+        .from("shops")
+        .select("*")
+        .eq("owner_id", activeUser.id)
+        .maybeSingle();
+
+      if (existingShop) return existingShop;
+
+      const emailToSearch = activeUser.email || otpEmail;
+      if (emailToSearch) {
+        const { data: shopByEmail } = await supabase
+          .from("shops")
+          .select("*")
+          .eq("email", emailToSearch)
+          .maybeSingle();
+
+        if (shopByEmail) return shopByEmail;
+      }
+      return null;
+    },
+  });
 
   const { data: stats } = useQuery({
     queryKey: ["dashboard"],
@@ -62,23 +104,17 @@ function Dashboard() {
       const monthStartStr = `${year}-${String(month + 1).padStart(2, "0")}-01`;
       const in30 = new Date(); in30.setDate(in30.getDate() + 30);
 
-      const [salesRes, productsRes, servicesRes, itemsRes, remindersRes, emisRes] = await Promise.all([
+      const [salesRes, productsRes, servicesRes, remindersRes, emisRes] = await Promise.all([
         supabase.from("sales").select("*"),
         supabase.from("products").select("*"),
-        supabase.from("services").select("*").order("service_date", { ascending: false }),
-        supabase.from("service_items").select("*"),
+        supabase.from("services").select("*, service_items(*)").order("service_date", { ascending: false }),
         supabase.from("services").select("*").eq("is_filter_change", true).not("next_service_date", "is", null).lte("next_service_date", in30.toISOString().slice(0, 10)).order("next_service_date"),
         supabase.from("emi_plans").select("*"),
       ]);
 
       const salesRows = salesRes.data ?? [];
       const productsRows = productsRes.data ?? [];
-      const rawServices = servicesRes.data ?? [];
-      const serviceItems = itemsRes.data ?? [];
-      const servicesRows = rawServices.map((s) => ({
-        ...s,
-        service_items: serviceItems.filter((i) => i.service_id === s.id),
-      }));
+      const servicesRows = servicesRes.data ?? [];
 
       const totalSalesAmt = (rows: typeof salesRows) => rows.reduce((s, r) => s + Number(r.price || 0) * Number(r.qty || 1), 0);
       const todaySalesAmt = totalSalesAmt(salesRows.filter(r => r.sale_date === todayStr));

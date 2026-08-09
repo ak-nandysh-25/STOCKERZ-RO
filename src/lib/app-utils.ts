@@ -1,79 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export async function fetchActiveShop() {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    let activeUser = user;
-
-    if (!activeUser) {
-      const { data: sessionData } = await supabase.auth.getSession();
-      activeUser = sessionData?.session?.user ?? null;
-    }
-
-    let otpEmail: string | null = null;
-    if (typeof window !== "undefined") {
-      otpEmail = localStorage.getItem("stockerz_otp_user");
-    }
-
-    const emailToSearch = activeUser?.email || otpEmail;
-
-    // 1. Priority: Find shop by email (always load the original registered shop)
-    if (emailToSearch) {
-      const { data: shopByEmail } = await supabase
-        .from("shops")
-        .select("*")
-        .eq("email", emailToSearch.toLowerCase().trim())
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (shopByEmail) return shopByEmail;
-    }
-
-    // 2. Fallback: Find shop by owner_id
-    if (activeUser?.id && !activeUser.id.startsWith("otp-user-")) {
-      const { data: existingShop } = await supabase
-        .from("shops")
-        .select("*")
-        .eq("owner_id", activeUser.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingShop) return existingShop;
-    }
-
-    // 3. Fallback: Create default shop profile if no shop exists at all for valid auth user
-    if (activeUser?.id && !activeUser.id.startsWith("otp-user-")) {
-      const shopName = activeUser.user_metadata?.shop_name || "MY SHOP";
-      const { data: newShop } = await supabase
-        .from("shops")
-        .upsert(
-          {
-            owner_id: activeUser.id,
-            name: shopName,
-            email: emailToSearch ?? null,
-          },
-          { onConflict: "owner_id" }
-        )
-        .select("*")
-        .single();
-
-      return newShop ?? null;
-    }
-
-    return null;
-  } catch (err) {
-    console.error("fetchActiveShop error:", err);
-    return null;
-  }
-}
-
 export function useShop() {
   return useQuery({
     queryKey: ["shop"],
-    queryFn: fetchActiveShop,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("shops")
+        .select("*")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
   });
 }
 
