@@ -128,25 +128,33 @@ function Dashboard() {
 
       salesRows.forEach(r => {
         if (!r.sale_date) return;
-        const dObj = new Date(r.sale_date);
-        if (dObj.getFullYear() === year && dObj.getMonth() === month) {
-          const day = dObj.getDate();
-          const amt = Number(r.price || 0) * Number(r.qty || 1);
-          if (r.source === "office") {
-            dailyMap[day].office += amt;
-          } else {
-            dailyMap[day].sales += amt;
+        const parts = r.sale_date.split("-");
+        if (parts.length === 3) {
+          const y = Number(parts[0]);
+          const m = Number(parts[1]) - 1;
+          const day = Number(parts[2]);
+          if (y === year && m === month && dailyMap[day]) {
+            const amt = Number(r.price || 0) * Number(r.qty || 1);
+            if (r.source === "office") {
+              dailyMap[day].office += amt;
+            } else {
+              dailyMap[day].sales += amt;
+            }
           }
         }
       });
 
       servicesRows.forEach(s => {
         if (!s.service_date) return;
-        const dObj = new Date(s.service_date);
-        if (dObj.getFullYear() === year && dObj.getMonth() === month) {
-          const day = dObj.getDate();
-          const itemsTotal = (s.service_items ?? []).reduce((acc: number, item: any) => acc + Number(item.price || 0), 0);
-          dailyMap[day].service += itemsTotal;
+        const parts = s.service_date.split("-");
+        if (parts.length === 3) {
+          const y = Number(parts[0]);
+          const m = Number(parts[1]) - 1;
+          const day = Number(parts[2]);
+          if (y === year && m === month && dailyMap[day]) {
+            const itemsTotal = (s.service_items ?? []).reduce((acc: number, item: any) => acc + Number(item.price || 0), 0);
+            dailyMap[day].service += itemsTotal;
+          }
         }
       });
 
