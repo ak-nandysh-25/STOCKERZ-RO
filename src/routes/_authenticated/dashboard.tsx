@@ -8,6 +8,7 @@ import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Ba
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Dashboard — STOCKERZ RO" }] }),
   component: Dashboard,
 });

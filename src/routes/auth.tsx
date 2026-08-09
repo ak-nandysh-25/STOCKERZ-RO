@@ -12,6 +12,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/comp
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot", "otp"]).optional() });
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Sign in — STOCKERZ RO" },
