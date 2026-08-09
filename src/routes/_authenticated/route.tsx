@@ -37,32 +37,42 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    // If URL has OAuth callback hash or query code, give Supabase SDK time to process session
-    if (typeof window !== "undefined") {
-      const hasHash = window.location.hash.includes("access_token");
-      const hasCode = window.location.search.includes("code=");
-      if (hasHash || hasCode) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session?.user) {
-          return { user: sessionData.session.user };
+    try {
+      // If URL has OAuth callback hash or query code, give Supabase SDK time to process session
+      if (typeof window !== "undefined") {
+        const hasHash = window.location.hash.includes("access_token");
+        const hasCode = window.location.search.includes("code=");
+        if (hasHash || hasCode) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session?.user) {
+            return { user: sessionData.session.user };
+          }
         }
       }
-    }
 
-    const { data } = await supabase.auth.getUser();
-    if (data?.user) return { user: data.user };
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) return { user: userData.user };
 
-    // Fallback check for active session
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData?.session?.user) {
-      return { user: sessionData.session.user };
-    }
+      // Fallback check for active session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user) {
+        return { user: sessionData.session.user };
+      }
 
-    // OTP Auth session check
-    if (typeof window !== "undefined") {
-      const otpEmail = localStorage.getItem("stockerz_otp_user");
-      if (otpEmail) {
-        return { user: { id: "otp-user-" + btoa(otpEmail), email: otpEmail } };
+      // OTP Auth session check
+      if (typeof window !== "undefined") {
+        const otpEmail = localStorage.getItem("stockerz_otp_user");
+        if (otpEmail) {
+          return { user: { id: "otp-user-" + btoa(otpEmail), email: otpEmail } };
+        }
+      }
+    } catch (err) {
+      console.warn("Auth check notice:", err);
+      if (typeof window !== "undefined") {
+        const otpEmail = localStorage.getItem("stockerz_otp_user");
+        if (otpEmail) {
+          return { user: { id: "otp-user-" + btoa(otpEmail), email: otpEmail } };
+        }
       }
     }
 

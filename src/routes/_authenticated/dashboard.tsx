@@ -62,17 +62,23 @@ function Dashboard() {
       const monthStartStr = `${year}-${String(month + 1).padStart(2, "0")}-01`;
       const in30 = new Date(); in30.setDate(in30.getDate() + 30);
 
-      const [salesRes, productsRes, servicesRes, remindersRes, emisRes] = await Promise.all([
+      const [salesRes, productsRes, servicesRes, itemsRes, remindersRes, emisRes] = await Promise.all([
         supabase.from("sales").select("*"),
         supabase.from("products").select("*"),
-        supabase.from("services").select("*, service_items(*)").order("service_date", { ascending: false }),
+        supabase.from("services").select("*").order("service_date", { ascending: false }),
+        supabase.from("service_items").select("*"),
         supabase.from("services").select("*").eq("is_filter_change", true).not("next_service_date", "is", null).lte("next_service_date", in30.toISOString().slice(0, 10)).order("next_service_date"),
         supabase.from("emi_plans").select("*"),
       ]);
 
       const salesRows = salesRes.data ?? [];
       const productsRows = productsRes.data ?? [];
-      const servicesRows = servicesRes.data ?? [];
+      const rawServices = servicesRes.data ?? [];
+      const serviceItems = itemsRes.data ?? [];
+      const servicesRows = rawServices.map((s) => ({
+        ...s,
+        service_items: serviceItems.filter((i) => i.service_id === s.id),
+      }));
 
       const totalSalesAmt = (rows: typeof salesRows) => rows.reduce((s, r) => s + Number(r.price || 0) * Number(r.qty || 1), 0);
       const todaySalesAmt = totalSalesAmt(salesRows.filter(r => r.sale_date === todayStr));
