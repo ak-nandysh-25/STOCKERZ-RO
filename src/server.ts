@@ -1,6 +1,26 @@
 import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 
+// Global fallback for createMiddleware to prevent circular chunk splitting failures during SSR
+if (typeof (globalThis as any).createMiddleware === "undefined") {
+  (globalThis as any).createMiddleware = (options: any, __opts: any) => {
+    const resolvedOptions = { type: "request", ...(__opts || options) };
+    const setValidator = (validator: any) =>
+      (globalThis as any).createMiddleware({}, Object.assign(resolvedOptions, { validator, inputValidator: validator }));
+    return {
+      options: resolvedOptions,
+      middleware: (middleware: any) =>
+        (globalThis as any).createMiddleware({}, Object.assign(resolvedOptions, { middleware })),
+      validator: setValidator,
+      inputValidator: setValidator,
+      client: (client: any) =>
+        (globalThis as any).createMiddleware({}, Object.assign(resolvedOptions, { client })),
+      server: (server: any) =>
+        (globalThis as any).createMiddleware({}, Object.assign(resolvedOptions, { server })),
+    };
+  };
+}
+
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
