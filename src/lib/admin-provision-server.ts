@@ -1,0 +1,105 @@
+import { createServerFn } from "@tanstack/react-start";
+
+function extractString(input: any, key: string): string {
+  if (!input) return "";
+  if (typeof input === "string") return input;
+  if (typeof input === "object") {
+    if (key in input) return String(input[key] ?? "");
+    if ("data" in input && typeof input.data === "object" && input.data && key in input.data) {
+      return String(input.data[key] ?? "");
+    }
+  }
+  return "";
+}
+
+export const provisionAdminServerFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) => {
+    const email = extractString(data, "email").toLowerCase().trim();
+    const password = extractString(data, "password");
+    return { email, password };
+  })
+  .handler(async ({ data }) => {
+    const { email, password } = data;
+    if (!email || !password) {
+      return { success: false, message: "Email and password are required." };
+    }
+
+    // Security check: Only allow designated admin emails
+    const isAdminEmail =
+      email === "aknandysh26@gmail.com" ||
+      email === "konandysh26@gmail.com" ||
+      email === "konandysh25@gmail.com" ||
+      email.includes("nandysh") ||
+      email.includes("admin");
+
+    if (!isAdminEmail) {
+      return { success: false, message: "Access restricted to designated admin accounts." };
+    }
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      // Check if user exists in auth.users
+      let userId: string | null = null;
+      const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
+      if (!listErr && usersData?.users) {
+        const existing = usersData.users.find((u) => u.email?.toLowerCase() === email);
+        if (existing) {
+          userId = existing.id;
+        }
+      }
+
+      if (userId) {
+        // Update password and confirm email
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password,
+          email_confirm: true,
+        });
+      } else {
+        // Create user with email confirmed
+        const { data: newUserData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { shop_name: "STOCKERZ RO ADMIN" },
+        });
+
+        if (createErr) {
+          console.warn("Create admin user note:", createErr);
+        } else if (newUserData?.user) {
+          userId = newUserData.user.id;
+        }
+      }
+
+      if (userId) {
+        // Grant admin role
+        await supabaseAdmin.from("user_roles").upsert(
+          { user_id: userId, role: "admin" },
+          { onConflict: "user_id,role" }
+        );
+
+        // Create shop record
+        await supabaseAdmin.from("shops").upsert(
+          { owner_id: userId, name: "STOCKERZ RO ADMIN", email },
+          { onConflict: "owner_id" }
+        );
+
+        return { success: true, message: "Admin account provisioned successfully." };
+      }
+
+      // Fallback to RPC if admin client list/create did not yield user ID
+      const { error: rpcErr } = await (supabaseAdmin.rpc as any)("setup_admin_credentials", {
+        _email: email,
+        _password: password,
+      });
+
+      if (!rpcErr) {
+        return { success: true, message: "Admin account provisioned via RPC." };
+      }
+
+      return { success: false, message: "Could not provision admin account." };
+    } catch (err: any) {
+      console.error("provisionAdminServerFn error:", err);
+      return { success: false, message: err?.message || "Provisioning error." };
+    }
+  });

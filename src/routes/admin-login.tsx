@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { provisionAdminServerFn } from "@/lib/admin-provision-server";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
@@ -48,14 +49,11 @@ function AdminLogin() {
     setLoading(true);
     const cleanEmail = email.trim().toLowerCase();
     try {
-      // Step 1: Auto-provision/confirm admin credentials via RPC if database has setup_admin_credentials
+      // Step 1: Auto-provision admin user on the server (bypasses email confirmation requirement)
       try {
-        await (supabase.rpc as any)("setup_admin_credentials", {
-          _email: cleanEmail,
-          _password: password,
-        });
-      } catch (rpcErr) {
-        console.warn("setup_admin_credentials RPC notice:", rpcErr);
+        await provisionAdminServerFn({ data: { email: cleanEmail, password } });
+      } catch (provErr) {
+        console.warn("Server admin provision notice:", provErr);
       }
 
       // Step 2: Sign in with password
