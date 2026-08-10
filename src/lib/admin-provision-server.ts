@@ -24,10 +24,10 @@ export const provisionAdminServerFn = createServerFn({ method: "POST" })
       return { success: false, message: "Email and password are required." };
     }
 
-    // Security check: Only allow designated admin emails
+    // Explicit check for designated admin email
     const isAdminEmail =
-      email === "aknandysh26@gmail.com" ||
       email === "konandysh26@gmail.com" ||
+      email === "aknandysh26@gmail.com" ||
       email === "konandysh25@gmail.com" ||
       email.includes("nandysh") ||
       email.includes("admin");
