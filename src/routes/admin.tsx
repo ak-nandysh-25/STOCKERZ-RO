@@ -398,10 +398,10 @@ function AdminControlCenter() {
     const salesSum = (data?.sales ?? []).reduce((a, r) => a + Number(r.price) * Number(r.qty), 0);
     const serviceItemsSum = (data?.serviceItems ?? []).reduce((a, r) => a + Number(r.price ?? 0), 0);
     return {
-      shopsCount: data?.shops.length ?? 0,
+      shopsCount: data?.shops?.length ?? 0,
       totalSalesRevenue: salesSum,
       totalServiceRevenue: serviceItemsSum,
-      totalProductsCount: data?.products.length ?? 0,
+      totalProductsCount: data?.products?.length ?? 0,
     };
   }, [data]);
 
@@ -633,7 +633,7 @@ function AdminControlCenter() {
                 </thead>
                 <tbody>
                   {filteredSales.map((sale) => {
-                    const shop = data?.shops.find((shp) => shp.id === sale.shop_id);
+                    const shop = data?.shops?.find((shp) => shp.id === sale.shop_id);
                     return (
                       <tr key={sale.id}>
                         <Td className="font-semibold text-primary">{upper(shop?.name ?? "Unknown Shop")}</Td>
@@ -688,7 +688,7 @@ function AdminControlCenter() {
                 </thead>
                 <tbody>
                   {filteredProducts.map((prod) => {
-                    const shop = data?.shops.find((shp) => shp.id === prod.shop_id);
+                    const shop = data?.shops?.find((shp) => shp.id === prod.shop_id);
                     const isLow = Number(prod.qty) <= Number(prod.low_stock_threshold);
                     return (
                       <tr key={prod.id}>
@@ -749,8 +749,8 @@ function AdminControlCenter() {
                 </thead>
                 <tbody>
                   {filteredServices.map((svc) => {
-                    const shop = data?.shops.find((shp) => shp.id === svc.shop_id);
-                    const tech = data?.technicians.find((t) => t.id === svc.technician_id);
+                    const shop = data?.shops?.find((shp) => shp.id === svc.shop_id);
+                    const tech = data?.technicians?.find((t) => t.id === svc.technician_id);
                     return (
                       <tr key={svc.id}>
                         <Td className="font-semibold text-primary">{upper(shop?.name ?? "Unknown Shop")}</Td>
