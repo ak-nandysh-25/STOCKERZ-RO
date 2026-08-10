@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import { fetchActiveShop, upper } from "@/lib/app-utils";
+import { upper } from "@/lib/app-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { toast } from "sonner";
 
@@ -116,10 +116,76 @@ function Shell() {
   const [collapsed, setCollapsed] = useState(false);
   const [confirmSignOutOpen, setConfirmSignOutOpen] = useState(false);
 
-  // Load shop profile for active user (resolves by email link, owner_id, or auto-creation)
+  // Load shop profile for active user (resolves by owner_id, email link, or auto-creation)
   const { data: shop } = useQuery({
     queryKey: ["shop"],
-    queryFn: fetchActiveShop,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      let activeUser = user;
+
+      if (!activeUser) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        activeUser = sessionData?.session?.user ?? null;
+      }
+
+      let otpEmail: string | null = null;
+      if (typeof window !== "undefined") {
+        otpEmail = localStorage.getItem("stockerz_otp_user");
+      }
+
+      if (!activeUser && otpEmail) {
+        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
+      }
+
+      if (!activeUser) return null;
+
+      // 1. Check shop by owner_id
+      const { data: existingShop } = await supabase
+        .from("shops")
+        .select("*")
+        .eq("owner_id", activeUser.id)
+        .maybeSingle();
+
+      if (existingShop) return existingShop;
+
+      // 2. If not found by owner_id, check by email link
+      const emailToSearch = activeUser.email || otpEmail;
+      if (emailToSearch) {
+        const { data: shopByEmail } = await supabase
+          .from("shops")
+          .select("*")
+          .eq("email", emailToSearch)
+          .maybeSingle();
+
+        if (shopByEmail) {
+          const { data: updatedShop } = await supabase
+            .from("shops")
+            .update({ owner_id: activeUser.id })
+            .eq("id", shopByEmail.id)
+            .select("*")
+            .single();
+
+          if (updatedShop) return updatedShop;
+        }
+      }
+
+      // 3. Auto-upsert shop profile so valid logged-in users are never blocked
+      const shopName = activeUser.user_metadata?.shop_name || "MY SHOP";
+      const { data: newShop } = await supabase
+        .from("shops")
+        .upsert(
+          {
+            owner_id: activeUser.id,
+            name: shopName,
+            email: emailToSearch ?? null,
+          },
+          { onConflict: "owner_id" }
+        )
+        .select("*")
+        .single();
+
+      return newShop ?? null;
+    },
   });
 
   async function signOut() {
