@@ -50,7 +50,7 @@ function AdminLogin() {
     try {
       // Step 1: Auto-provision/confirm admin credentials via RPC if database has setup_admin_credentials
       try {
-        await supabase.rpc("setup_admin_credentials", {
+        await (supabase.rpc as any)("setup_admin_credentials", {
           _email: cleanEmail,
           _password: password,
         });
