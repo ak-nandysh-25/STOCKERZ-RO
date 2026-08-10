@@ -50,22 +50,44 @@ function AdminLogin() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.user) {
+        throw new Error("Invalid email or password.");
+      }
+
       const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
         _user_id: data.user.id,
         _role: "admin",
       });
+
       if (roleErr) throw roleErr;
+
       if (!isAdmin) {
         await supabase.auth.signOut();
-        throw new Error("This account does not have admin access");
+        throw new Error("This account does not have admin access in Supabase.");
       }
+
       toast.success("Welcome, admin");
       nav({ to: "/admin" });
     } catch (err: any) {
-      toast.error(err.message ?? "Sign in failed");
+      console.error("Admin sign-in error:", err);
+      const errorMessage =
+        typeof err === "string"
+          ? err
+          : typeof err?.message === "string" && err.message !== "[object Object]"
+          ? err.message
+          : err?.error_description || "Invalid email or password. Ensure admin user is created in Supabase.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
