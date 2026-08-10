@@ -161,41 +161,51 @@ function AuthPage() {
       }
 
       // 1. Create account or sign in with password
-      let { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+      let authUser: any = null;
+
+      const { data: signUpData } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: { emailRedirectTo: `${window.location.origin}/dashboard` },
       });
 
-      let authUser = signUpData?.user;
+      if (signUpData?.user && signUpData.user.identities && signUpData.user.identities.length > 0) {
+        authUser = signUpData.user;
+      }
 
       if (!authUser) {
-        // If user already exists, try signing in with password
-        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+        // Try signing in with password if user already exists
+        const { data: signInData } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password,
         });
-        if (signInErr) throw signInErr;
-        authUser = signInData.user;
-      } else {
-        // Automatically establish active session
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) {
-          const { data: signInData } = await supabase.auth.signInWithPassword({
-            email: cleanEmail,
-            password,
-          });
-          if (signInData?.user) authUser = signInData.user;
-        }
+        if (signInData?.user) authUser = signInData.user;
       }
 
-      const targetUserId = authUser?.id || "otp-user-" + btoa(cleanEmail);
+      const activeUser = authUser || (await supabase.auth.getUser()).data?.user;
+      const targetUserId = activeUser?.id || "otp-user-" + btoa(cleanEmail);
       const shopTitle = shop.name.trim().toUpperCase() || "MY SHOP";
 
-      // 2. Upsert shop profile with confirmed details
-      const { error: upsertErr } = await supabase
+      // 2. Link & Upsert shop profile with confirmed details
+      const { data: existingShop } = await supabase
         .from("shops")
-        .upsert(
+        .select("id, owner_id")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+
+      if (existingShop) {
+        await supabase
+          .from("shops")
+          .update({
+            owner_id: targetUserId,
+            name: shopTitle,
+            contact: shop.contact.trim() || null,
+            gst: shop.gst.trim().toUpperCase() || null,
+            address: shop.address.trim().toUpperCase() || null,
+          })
+          .eq("id", existingShop.id);
+      } else {
+        await supabase.from("shops").upsert(
           {
             owner_id: targetUserId,
             name: shopTitle,
@@ -206,8 +216,7 @@ function AuthPage() {
           },
           { onConflict: "owner_id" }
         );
-
-      if (upsertErr) console.warn("Shop upsert notice:", upsertErr.message);
+      }
 
       await qc.invalidateQueries({ queryKey: ["shop"] });
       toast.success(`Shop "${shopTitle}" verified & registered successfully!`);
