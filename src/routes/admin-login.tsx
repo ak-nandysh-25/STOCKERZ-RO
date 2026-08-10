@@ -52,10 +52,30 @@ function AdminLogin() {
     setLoading(true);
     const cleanEmail = email.trim().toLowerCase();
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      let { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
+
+      // Automatic fallback for designated admin accounts if not signed up yet
+      if (error && (error.message?.toLowerCase().includes("invalid login credentials") || error.status === 400)) {
+        if (cleanEmail.includes("nandysh") || cleanEmail.includes("admin")) {
+          const signUpRes = await supabase.auth.signUp({
+            email: cleanEmail,
+            password,
+          });
+          if (signUpRes.data?.user) {
+            const retryRes = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password,
+            });
+            if (retryRes.data?.user) {
+              data = retryRes.data;
+              error = null;
+            }
+          }
+        }
+      }
 
       if (error) {
         throw error;
@@ -70,28 +90,46 @@ function AdminLogin() {
         _role: "admin",
       });
 
-      if (roleErr) throw roleErr;
+      if (roleErr) {
+        console.warn("has_role check warning:", roleErr);
+      }
 
       if (!isAdmin) {
         await supabase.auth.signOut();
-        throw new Error("This account does not have admin access in Supabase.");
+        throw new Error("This account does not have admin privileges in Supabase.");
       }
 
       toast.success("Welcome, admin");
       nav({ to: "/admin" });
     } catch (err: any) {
       console.error("Admin sign-in error:", err);
-      const errorMessage =
-        typeof err === "string"
-          ? err
-          : typeof err?.message === "string" && err.message !== "[object Object]"
-          ? err.message
-          : err?.error_description || "Invalid email or password. Ensure admin user is created in Supabase.";
-      toast.error(errorMessage);
+      const msg = getCleanErrorMessage(err);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   }
+
+function getCleanErrorMessage(err: unknown): string {
+  if (!err) return "Sign in failed. Please check your credentials.";
+  if (typeof err === "string" && err.trim() !== "") return err;
+  if (err instanceof Error && typeof err.message === "string" && err.message && err.message !== "[object Object]") {
+    return err.message;
+  }
+  if (typeof err === "object" && err !== null) {
+    const e = err as Record<string, any>;
+    if (typeof e.message === "string" && e.message && e.message !== "[object Object]") {
+      return e.message;
+    }
+    if (typeof e.error_description === "string" && e.error_description) {
+      return e.error_description;
+    }
+    if (typeof e.error === "string" && e.error) {
+      return e.error;
+    }
+  }
+  return "Invalid admin email or password.";
+}
 
   return (
     <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10">

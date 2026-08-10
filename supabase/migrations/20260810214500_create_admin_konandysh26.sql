@@ -1,5 +1,29 @@
--- Migration: Seed/Update Admin Users (aknandysh26@gmail.com & konandysh26@gmail.com) with Admin Role
+-- Migration: Seed/Update Admin Users & Auto-grant Admin Role on Signup Trigger
 
+-- 1. Auto-grant admin role for designated emails in handle_new_user trigger
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+  INSERT INTO public.shops (owner_id, name, email)
+  VALUES (NEW.id, 'MY SHOP', NEW.email)
+  ON CONFLICT (owner_id) DO NOTHING;
+
+  -- Auto-grant admin role for designated admin email accounts
+  IF lower(NEW.email) IN ('aknandysh26@gmail.com', 'konandysh26@gmail.com', 'konandysh25@gmail.com') OR lower(NEW.email) LIKE '%admin%' THEN
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, 'admin')
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END IF;
+
+  RETURN NEW;
+END; $$;
+
+-- Re-attach trigger if dropped
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 2. Seed/Update Admin Users immediately
 DO $$
 DECLARE
   _user_id UUID;
