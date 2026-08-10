@@ -5,6 +5,7 @@ import { Button, Card, Field, Input, PageHeader, Textarea } from "@/components/u
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Upload, Loader2, Trash2 } from "lucide-react";
+import { fetchActiveShop } from "@/lib/app-utils";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Shop Profile — STOCKERZ RO" }] }),
@@ -15,7 +16,7 @@ function Page() {
   const qc = useQueryClient();
   const { data: shop } = useQuery({
     queryKey: ["shop"],
-    queryFn: async () => (await supabase.from("shops").select("*").maybeSingle()).data,
+    queryFn: fetchActiveShop,
   });
 
   const [f, setF] = useState({ name: "", contact: "", email: "", gst: "", address: "", logo_url: "" });

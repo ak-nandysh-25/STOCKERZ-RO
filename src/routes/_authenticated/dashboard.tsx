@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, PageHeader } from "@/components/ui-kit";
-import { fmtMoney, upper, waLink, fmtDate } from "@/lib/app-utils";
+import { fetchActiveShop, fmtMoney, upper, waLink, fmtDate } from "@/lib/app-utils";
 import { AlertTriangle, Droplet, Package, ShoppingCart, TrendingUp, Wrench, MessageCircle, BarChart2 } from "lucide-react";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { motion } from "framer-motion";
@@ -52,46 +52,7 @@ function CustomTooltip({ active, payload, label }: any) {
 function Dashboard() {
   const { data: shop } = useQuery({
     queryKey: ["shop"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      let activeUser = user;
-
-      if (!activeUser) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        activeUser = sessionData?.session?.user ?? null;
-      }
-
-      let otpEmail: string | null = null;
-      if (typeof window !== "undefined") {
-        otpEmail = localStorage.getItem("stockerz_otp_user");
-      }
-
-      if (!activeUser && otpEmail) {
-        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
-      }
-
-      if (!activeUser) return null;
-
-      const { data: existingShop } = await supabase
-        .from("shops")
-        .select("*")
-        .eq("owner_id", activeUser.id)
-        .maybeSingle();
-
-      if (existingShop) return existingShop;
-
-      const emailToSearch = activeUser.email || otpEmail;
-      if (emailToSearch) {
-        const { data: shopByEmail } = await supabase
-          .from("shops")
-          .select("*")
-          .eq("email", emailToSearch)
-          .maybeSingle();
-
-        if (shopByEmail) return shopByEmail;
-      }
-      return null;
-    },
+    queryFn: fetchActiveShop,
   });
 
   const { data: stats } = useQuery({
