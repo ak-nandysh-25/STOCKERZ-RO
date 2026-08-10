@@ -50,56 +50,22 @@ function AdminLogin() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const cleanEmail = email.trim().toLowerCase();
     try {
-      // Attempt admin account bootstrap in Supabase if function exists
-      try {
-        await supabase.rpc("bootstrap_admin_account", {
-          _email: cleanEmail,
-          _password: password,
-        });
-      } catch (bootstrapErr) {
-        console.warn("Bootstrap admin RPC notice:", bootstrapErr);
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
-
-      if (error) {
-        throw new Error(error.message || "Invalid login credentials.");
-      }
-
-      if (!data?.user) {
-        throw new Error("No user session returned from Supabase.");
-      }
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) throw error;
       const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
         _user_id: data.user.id,
         _role: "admin",
       });
-
-      if (roleErr) {
-        console.warn("has_role RPC error:", roleErr);
-      }
-
+      if (roleErr) throw roleErr;
       if (!isAdmin) {
         await supabase.auth.signOut();
-        throw new Error("This account does not have admin access.");
+        throw new Error("This account does not have admin access");
       }
-
       toast.success("Welcome, admin");
       nav({ to: "/admin" });
     } catch (err: any) {
-      console.error("Admin sign-in error:", err);
-      const errorMessage =
-        typeof err === "string"
-          ? err
-          : typeof err?.message === "string" && err.message !== "[object Object]"
-          ? err.message
-          : err?.error_description || "Sign in failed. Please check your credentials.";
-      toast.error(errorMessage);
+      toast.error(err.message ?? "Sign in failed");
     } finally {
       setLoading(false);
     }
