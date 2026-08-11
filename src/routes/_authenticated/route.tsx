@@ -315,9 +315,8 @@ function Shell() {
         {/* Account / Footer Area */}
         <div className="p-3 border-t border-glass-border/40 shrink-0">
           {!collapsed && (
-            <div className="mb-2 px-3 py-1.5 rounded-lg bg-white/5 border border-glass-border/30">
-              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Logged in User</div>
-              <div className="text-xs font-semibold truncate text-foreground">{shop?.email || "User"}</div>
+            <div className="px-3 text-[10px] font-bold tracking-wider text-muted-foreground/70 uppercase mb-1">
+              ACCOUNT
             </div>
           )}
           {collapsed && (

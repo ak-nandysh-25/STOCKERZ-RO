@@ -5,7 +5,7 @@ import { ArrowLeft, CheckCircle2, Loader2, Mail, ShieldCheck } from "lucide-reac
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { sendOtpFn, verifyOtpFn } from "@/lib/otp-server";
-import { provisionAdminServerFn } from "@/lib/admin-provision-server";
+import { provisionAdminServerFn, logAuthActivityServerFn } from "@/lib/admin-provision-server";
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
 
 export const Route = createFileRoute("/admin-login")({
@@ -118,6 +118,20 @@ function AdminLogin() {
         });
       } catch (provErr) {
         console.warn("Server admin provision notice:", provErr);
+      }
+
+      // Log admin login activity in auth_logs
+      try {
+        await logAuthActivityServerFn({
+          data: {
+            email: cleanEmail,
+            eventType: "admin_login",
+            shopName: "SYSTEM ADMIN",
+            status: "success",
+          },
+        });
+      } catch (logErr) {
+        console.warn("Admin log notice:", logErr);
       }
 
       // Store OTP admin session in localStorage

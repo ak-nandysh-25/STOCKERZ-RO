@@ -91,17 +91,6 @@ export const provisionAdminServerFn = createServerFn({ method: "POST" })
       }
 
       if (userId) {
-        await supabaseAdmin.from("profiles").upsert(
-          {
-            id: userId,
-            email,
-            full_name: "SYSTEM ADMIN",
-            shop_name: "STOCKERZ RO ADMIN",
-            role: "admin",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" }
-        );
         return { success: true, message: "Admin account provisioned successfully." };
       }
 
@@ -126,27 +115,117 @@ export const getAdminMasterDataServerFn = createServerFn({ method: "GET" })
   .handler(async () => {
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const [shops, sales, services, serviceItems, products, technicians] = await Promise.all([
+      const [shops, sales, services, serviceItems, products, technicians, authLogs, authUsersRes] = await Promise.all([
         supabaseAdmin.from("shops").select("*").order("created_at", { ascending: false }),
         supabaseAdmin.from("sales").select("*").order("created_at", { ascending: false }),
         supabaseAdmin.from("services").select("*").order("created_at", { ascending: false }),
         supabaseAdmin.from("service_items").select("*"),
         supabaseAdmin.from("products").select("*").order("model", { ascending: true }),
         supabaseAdmin.from("technicians").select("*"),
+        supabaseAdmin.from("auth_logs").select("*").order("created_at", { ascending: false }).limit(200),
+        supabaseAdmin.auth.admin.listUsers().catch((e) => {
+          console.warn("listUsers notice:", e);
+          return { data: { users: [] }, error: null };
+        }),
       ]);
 
       const dbShops = shops.data ?? [];
       const localShops = Array.from(serverShopStore.values());
+      const authUsers = (authUsersRes as any)?.data?.users ?? [];
 
       const shopMap = new Map<string, any>();
+
+      // 1. Load local server shops
       for (const s of localShops) {
-        if (s.email) shopMap.set(s.email.toLowerCase(), s);
+        if (s.email) shopMap.set(s.email.toLowerCase(), { ...s });
       }
+
+      // 2. Load Supabase database shops
       for (const s of dbShops) {
-        if (s.email) shopMap.set(s.email.toLowerCase(), { ...shopMap.get(s.email.toLowerCase()), ...s });
+        if (s.email) {
+          const cleanEmail = s.email.toLowerCase();
+          shopMap.set(cleanEmail, { ...shopMap.get(cleanEmail), ...s });
+        }
+      }
+
+      // 3. Merge/Backfill from Supabase Auth Users list (shows all registered users)
+      for (const u of authUsers) {
+        if (!u.email) continue;
+        const cleanEmail = u.email.toLowerCase();
+        const existing = shopMap.get(cleanEmail);
+        const derivedShopName =
+          u.user_metadata?.shop_name ||
+          u.user_metadata?.name ||
+          (existing?.name && existing.name !== "MY SHOP" ? existing.name : cleanEmail.split("@")[0].toUpperCase() + " SHOWROOM");
+
+        const mergedShop = {
+          id: existing?.id || "shop-" + u.id,
+          name: derivedShopName,
+          email: cleanEmail,
+          contact: existing?.contact || u.phone || u.user_metadata?.phone || null,
+          gst: existing?.gst || null,
+          address: existing?.address || null,
+          owner_id: u.id || existing?.owner_id || "owner-" + Date.now(),
+          created_at: existing?.created_at || u.created_at || new Date().toISOString(),
+          last_login_at: existing?.last_login_at || u.last_sign_in_at || u.created_at || new Date().toISOString(),
+        };
+
+        shopMap.set(cleanEmail, mergedShop);
+
+        // Auto-persist to DB if missing from shops table
+        if (!existing) {
+          try {
+            await supabaseAdmin.from("shops").upsert(
+              {
+                id: mergedShop.id,
+                name: mergedShop.name,
+                email: mergedShop.email,
+                contact: mergedShop.contact,
+                owner_id: mergedShop.owner_id,
+                created_at: mergedShop.created_at,
+                last_login_at: mergedShop.last_login_at,
+              },
+              { onConflict: "email" }
+            );
+          } catch (upsertErr) {
+            console.warn("Auto-sync shop notice:", upsertErr);
+          }
+        }
       }
 
       const mergedShops = Array.from(shopMap.values());
+
+      // 4. Combine DB auth logs + synthetic logs for existing users who joined before log table creation
+      const dbLogs = authLogs.data ?? [];
+      const logEmailSet = new Set(dbLogs.map((l: any) => l.email?.toLowerCase()));
+
+      const syntheticLogs: any[] = [];
+      for (const s of mergedShops) {
+        if (s.email && !logEmailSet.has(s.email.toLowerCase())) {
+          syntheticLogs.push({
+            id: "synth-reg-" + s.id,
+            email: s.email,
+            shop_name: s.name,
+            event_type: "registration",
+            status: "success",
+            created_at: s.created_at || new Date().toISOString(),
+          });
+          if (s.last_login_at && s.last_login_at !== s.created_at) {
+            syntheticLogs.push({
+              id: "synth-login-" + s.id,
+              email: s.email,
+              shop_name: s.name,
+              event_type: "login_password",
+              status: "success",
+              created_at: s.last_login_at,
+            });
+          }
+        }
+      }
+
+      const combinedLogs = [...dbLogs, ...syntheticLogs].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
       return {
         success: true,
@@ -156,6 +235,7 @@ export const getAdminMasterDataServerFn = createServerFn({ method: "GET" })
         serviceItems: serviceItems.data ?? [],
         products: products.data ?? [],
         technicians: technicians.data ?? [],
+        authLogs: combinedLogs,
       };
     } catch (err: any) {
       console.error("getAdminMasterDataServerFn error:", err);
@@ -167,6 +247,7 @@ export const getAdminMasterDataServerFn = createServerFn({ method: "GET" })
         serviceItems: [],
         products: [],
         technicians: [],
+        authLogs: [],
       };
     }
   });
@@ -352,27 +433,12 @@ export const registerShopUserServerFn = createServerFn({ method: "POST" })
             email_confirm: true,
           });
         } else {
-          const { data: newUser } = await supabaseAdmin.auth.admin.createUser({
+          await supabaseAdmin.auth.admin.createUser({
             email,
             password,
             email_confirm: true,
             user_metadata: { shop_name: targetShopName },
           });
-          if (newUser?.user) userId = newUser.user.id;
-        }
-
-        if (userId) {
-          await supabaseAdmin.from("profiles").upsert(
-            {
-              id: userId,
-              email,
-              phone: updatedShop.contact || null,
-              shop_name: targetShopName,
-              role: "user",
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "id" }
-          );
         }
       }
 
@@ -386,12 +452,72 @@ export const registerShopUserServerFn = createServerFn({ method: "POST" })
           gst: updatedShop.gst,
           address: updatedShop.address,
           owner_id: updatedShop.owner_id || "owner-" + Date.now(),
+          last_login_at: new Date().toISOString(),
         },
         { onConflict: "email" }
       );
+
+      // Log registration event to auth_logs
+      await supabaseAdmin.from("auth_logs").insert({
+        email,
+        event_type: "registration",
+        shop_name: targetShopName,
+        status: "success",
+        created_at: new Date().toISOString(),
+      });
     } catch (err: any) {
       console.warn("registerShopUserServerFn Supabase notice:", err);
     }
 
     return { success: true, shop: updatedShop, message: "User credentials registered successfully." };
   });
+
+export interface AuthLogPayload {
+  email: string;
+  eventType: "registration" | "login_password" | "login_otp" | "admin_login" | "password_reset" | "login_failed";
+  shopName?: string | null;
+  userId?: string | null;
+  status?: "success" | "failed";
+}
+
+export const logAuthActivityServerFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) => {
+    const email = extractString(data, "email").trim().toLowerCase();
+    const eventType = (extractString(data, "eventType") || "login_password") as AuthLogPayload["eventType"];
+    const shopName = extractString(data, "shopName") || null;
+    const userId = extractString(data, "userId") || null;
+    const status = (extractString(data, "status") || "success") as "success" | "failed";
+    return { email, eventType, shopName, userId, status };
+  })
+  .handler(async ({ data }) => {
+    const { email, eventType, shopName, userId, status } = data;
+    if (!email) return { success: false, message: "Email is required for logging." };
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      // 1. Insert into auth_logs table
+      await supabaseAdmin.from("auth_logs").insert({
+        email,
+        event_type: eventType,
+        shop_name: shopName,
+        user_id: userId && !userId.startsWith("otp-") && !userId.startsWith("admin-") ? userId : null,
+        status,
+        created_at: new Date().toISOString(),
+      });
+
+      // 2. If login or registration successful, update last_login_at in shops table
+      if (status === "success" && (eventType === "login_password" || eventType === "login_otp" || eventType === "registration")) {
+        await supabaseAdmin
+          .from("shops")
+          .update({ last_login_at: new Date().toISOString() })
+          .eq("email", email);
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.warn("logAuthActivityServerFn notice:", err);
+      return { success: false, message: err?.message };
+    }
+  });
+

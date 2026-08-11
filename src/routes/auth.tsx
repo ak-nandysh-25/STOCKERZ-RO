@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { sendOtpFn, verifyOtpFn } from "@/lib/otp-server";
-import { registerShopUserServerFn } from "@/lib/admin-provision-server";
+import { registerShopUserServerFn, logAuthActivityServerFn } from "@/lib/admin-provision-server";
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
@@ -190,10 +190,7 @@ function AuthPage() {
       const { data: signUpData } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-          data: { shop_name: shopTitle, phone: shop.contact.trim() },
-        },
+        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
       });
 
       if (signUpData?.user && signUpData.user.identities && signUpData.user.identities.length > 0) {
@@ -211,21 +208,6 @@ function AuthPage() {
 
       const activeUser = authUser || (await supabase.auth.getUser()).data?.user;
       const targetUserId = activeUser?.id || "otp-user-" + btoa(cleanEmail);
-
-      // Save user profile details to Supabase profiles table
-      if (activeUser?.id && !activeUser.id.startsWith("otp-user-")) {
-        await supabase.from("profiles").upsert(
-          {
-            id: activeUser.id,
-            email: cleanEmail,
-            phone: shop.contact.trim() || null,
-            shop_name: shopTitle,
-            role: "user",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" }
-        );
-      }
 
       // 2. Link & Upsert shop profile with confirmed details
       const { data: existingShop } = await supabase
@@ -260,7 +242,22 @@ function AuthPage() {
       }
 
       await qc.invalidateQueries({ queryKey: ["shop"] });
-      await qc.invalidateQueries({ queryKey: ["user-profile"] });
+
+      // Log successful registration activity in auth_logs
+      try {
+        await logAuthActivityServerFn({
+          data: {
+            email: cleanEmail,
+            eventType: "registration",
+            shopName: shopTitle,
+            userId: activeUser?.id,
+            status: "success",
+          },
+        });
+      } catch (logErr) {
+        console.warn("Auth log notice:", logErr);
+      }
+
       toast.success(`Shop "${shopTitle}" verified & registered successfully!`);
 
       if (typeof window !== "undefined") {
@@ -269,6 +266,16 @@ function AuthPage() {
         nav({ to: "/dashboard", replace: true });
       }
     } catch (err: any) {
+      try {
+        await logAuthActivityServerFn({
+          data: {
+            email: email.trim().toLowerCase(),
+            eventType: "registration",
+            shopName: shop.name.trim(),
+            status: "failed",
+          },
+        });
+      } catch (_) {}
       toast.error(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
@@ -307,6 +314,20 @@ function AuthPage() {
           localStorage.setItem("stockerz_otp_user", cleanEmail);
         }
 
+        // Log successful password sign-in
+        try {
+          await logAuthActivityServerFn({
+            data: {
+              email: cleanEmail,
+              eventType: "login_password",
+              userId: loggedInUser?.id,
+              status: "success",
+            },
+          });
+        } catch (logErr) {
+          console.warn("Auth log notice:", logErr);
+        }
+
         await qc.invalidateQueries({ queryKey: ["shop"] });
         toast.success("Welcome back!");
 
@@ -318,8 +339,28 @@ function AuthPage() {
         return;
       }
 
+      // Log failed login attempt
+      try {
+        await logAuthActivityServerFn({
+          data: {
+            email: cleanEmail,
+            eventType: "login_password",
+            status: "failed",
+          },
+        });
+      } catch (_) {}
+
       toast.error("Invalid email or password. Please check credentials.");
     } catch (err: any) {
+      try {
+        await logAuthActivityServerFn({
+          data: {
+            email: email.trim().toLowerCase(),
+            eventType: "login_password",
+            status: "failed",
+          },
+        });
+      } catch (_) {}
       toast.error(err.message ?? "Invalid email or password");
     } finally {
       setLoading(false);
@@ -339,6 +380,18 @@ function AuthPage() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
+
+      // Log password reset attempt
+      try {
+        await logAuthActivityServerFn({
+          data: {
+            email: email.trim().toLowerCase(),
+            eventType: "password_reset",
+            status: "success",
+          },
+        });
+      } catch (_) {}
+
       setResetSent(true);
       toast.success("Password reset link sent to your email!");
     } catch (err: any) {

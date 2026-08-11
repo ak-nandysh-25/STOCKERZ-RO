@@ -77,7 +77,7 @@ type ShopRow = {
   lowStock: number;
 };
 
-type ActiveTab = "shops" | "sales" | "inventory" | "services";
+type ActiveTab = "shops" | "sales" | "inventory" | "services" | "authLogs";
 
 function AdminControlCenter() {
   const nav = useNavigate();
@@ -128,6 +128,7 @@ function AdminControlCenter() {
             serviceItems: sData.serviceItems ?? [],
             products: sData.products ?? [],
             technicians: sData.technicians ?? [],
+            authLogs: sData.authLogs ?? [],
           };
         }
       } catch (err) {
@@ -135,13 +136,14 @@ function AdminControlCenter() {
       }
 
       // Fallback to client query
-      const [shops, sales, services, serviceItems, products, technicians] = await Promise.all([
+      const [shops, sales, services, serviceItems, products, technicians, authLogs] = await Promise.all([
         supabase.from("shops").select("*").order("created_at", { ascending: false }),
         supabase.from("sales").select("*").order("created_at", { ascending: false }),
         supabase.from("services").select("*").order("created_at", { ascending: false }),
         supabase.from("service_items").select("*"),
         supabase.from("products").select("*").order("model", { ascending: true }),
         supabase.from("technicians").select("*"),
+        supabase.from("auth_logs").select("*").order("created_at", { ascending: false }).limit(200),
       ]);
 
       return {
@@ -151,6 +153,7 @@ function AdminControlCenter() {
         serviceItems: serviceItems.data ?? [],
         products: products.data ?? [],
         technicians: technicians.data ?? [],
+        authLogs: authLogs.data ?? [],
       };
     },
   });
@@ -215,6 +218,17 @@ function AdminControlCenter() {
       const shopName = data.shops.find((shp) => shp.id === svc.shop_id)?.name ?? "";
       const techName = data.technicians.find((t) => t.id === svc.technician_id)?.name ?? "";
       return [svc.customer_name, svc.phone, svc.service_type, shopName, techName]
+        .some((v) => (v ?? "").toLowerCase().includes(term));
+    });
+  }, [data, q]);
+
+  // Processed Auth & Sign-in Logs
+  const filteredAuthLogs = useMemo(() => {
+    if (!data || !data.authLogs) return [];
+    const term = q.trim().toLowerCase();
+    return data.authLogs.filter((log: any) => {
+      if (!term) return true;
+      return [log.email, log.event_type, log.shop_name, log.status]
         .some((v) => (v ?? "").toLowerCase().includes(term));
     });
   }, [data, q]);
@@ -472,6 +486,7 @@ function AdminControlCenter() {
             { key: "sales", label: `All Sales (${filteredSales.length})`, icon: ShoppingCart },
             { key: "inventory", label: `Global Stock (${filteredProducts.length})`, icon: Package },
             { key: "services", label: `Service Calls (${filteredServices.length})`, icon: Wrench },
+            { key: "authLogs", label: `Auth & Signin Logs (${filteredAuthLogs.length})`, icon: ShieldCheck },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -788,6 +803,76 @@ function AdminControlCenter() {
                         <Td>{fmtDate(svc.service_date)}</Td>
                         <Td className="text-amber-400 font-medium font-mono">
                           {fmtDate(svc.next_service_date)}
+                        </Td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </Table>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* TAB 5: AUTH & SIGNIN LOGS */}
+      {activeTab === "authLogs" && (
+        <div className="mt-6">
+          <Card>
+            {isLoading ? (
+              <Empty text="Loading auth logs…" />
+            ) : filteredAuthLogs.length === 0 ? (
+              <Empty text="No registration or sign-in logs found" />
+            ) : (
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Timestamp</Th>
+                    <Th>Email Address</Th>
+                    <Th>Shop Name</Th>
+                    <Th>Event Type</Th>
+                    <Th>Status</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAuthLogs.map((log: any) => {
+                    const eventLabel =
+                      log.event_type === "registration"
+                        ? "New Shop Register"
+                        : log.event_type === "login_password"
+                        ? "Password Sign In"
+                        : log.event_type === "login_otp"
+                        ? "OTP Sign In"
+                        : log.event_type === "admin_login"
+                        ? "System Admin Login"
+                        : log.event_type === "password_reset"
+                        ? "Password Reset Request"
+                        : log.event_type;
+
+                    const eventBadgeColor =
+                      log.event_type === "registration"
+                        ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                        : log.event_type === "admin_login"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                        : log.event_type === "password_reset"
+                        ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                        : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+
+                    return (
+                      <tr key={log.id}>
+                        <Td className="text-xs font-mono text-muted-foreground">{fmtDate(log.created_at)}</Td>
+                        <Td className="font-semibold text-foreground">{log.email}</Td>
+                        <Td className="text-muted-foreground font-medium">{log.shop_name ?? "—"}</Td>
+                        <Td>
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${eventBadgeColor}`}>
+                            {eventLabel}
+                          </span>
+                        </Td>
+                        <Td>
+                          {log.status === "success" ? (
+                            <span className="text-xs font-bold text-emerald-400">SUCCESS</span>
+                          ) : (
+                            <span className="text-xs font-bold text-rose-400">FAILED</span>
+                          )}
                         </Td>
                       </tr>
                     );
