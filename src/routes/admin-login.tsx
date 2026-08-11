@@ -48,82 +48,35 @@ function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     const cleanEmail = email.trim().toLowerCase();
-    const isDesignatedAdmin =
-      cleanEmail.includes("nandysh") ||
-      cleanEmail.includes("admin") ||
-      cleanEmail === "aknandysh26@gmail.com" ||
-      cleanEmail === "konandysh26@gmail.com" ||
-      cleanEmail === "konandysh25@gmail.com";
-
     try {
-      // Step 1: Server-side admin provision (bypasses email confirmation)
+      // Step 1: Auto-provision admin user on the server (bypasses email confirmation requirement)
       try {
         await provisionAdminServerFn({ data: { email: cleanEmail, password } });
       } catch (provErr) {
         console.warn("Server admin provision notice:", provErr);
       }
 
-      // Step 2: Client RPC admin provision for designated admin accounts
-      if (isDesignatedAdmin) {
-        try {
-          await supabase.rpc("setup_admin_credentials", {
-            _email: cleanEmail,
-            _password: password,
-          });
-        } catch (rpcErr) {
-          console.warn("Client RPC setup notice:", rpcErr);
-        }
-      }
-
-      // Step 3: Sign in with password
+      // Step 2: Sign in with password
       let { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
 
-      // Step 4: Fallback provision & retry if sign in initially failed
-      if (error && isDesignatedAdmin) {
-        try {
-          // Attempt RPC provisioning again
-          const rpcRes = await supabase.rpc("setup_admin_credentials", {
-            _email: cleanEmail,
-            _password: password,
+      // Step 3: Fallback signup if account not created yet
+      if (error && (cleanEmail.includes("nandysh") || cleanEmail.includes("admin"))) {
+        const signUpRes = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+        });
+        if (signUpRes.data?.user) {
+          const retryRes = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
           });
-
-          if (rpcRes.data) {
-            const retryRes = await supabase.auth.signInWithPassword({
-              email: cleanEmail,
-              password,
-            });
-            if (retryRes.data?.user) {
-              data = retryRes.data;
-              error = null;
-            }
+          if (retryRes.data?.user) {
+            data = retryRes.data;
+            error = null;
           }
-
-          if (error) {
-            // Fallback signup then RPC update
-            const signUpRes = await supabase.auth.signUp({
-              email: cleanEmail,
-              password,
-            });
-            if (signUpRes.data?.user) {
-              await supabase.rpc("setup_admin_credentials", {
-                _email: cleanEmail,
-                _password: password,
-              });
-              const retryRes = await supabase.auth.signInWithPassword({
-                email: cleanEmail,
-                password,
-              });
-              if (retryRes.data?.user) {
-                data = retryRes.data;
-                error = null;
-              }
-            }
-          }
-        } catch (fallbackErr) {
-          console.warn("Fallback provision notice:", fallbackErr);
         }
       }
 
@@ -135,7 +88,7 @@ function AdminLogin() {
         throw new Error("Invalid email or password.");
       }
 
-      // Step 5: Verify Admin Role
+      // Step 4: Verify Admin Role
       const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
         _user_id: data.user.id,
         _role: "admin",
@@ -146,15 +99,8 @@ function AdminLogin() {
       }
 
       if (!isAdmin) {
-        if (isDesignatedAdmin) {
-          await supabase.from("user_roles").upsert(
-            { user_id: data.user.id, role: "admin" },
-            { onConflict: "user_id,role" }
-          );
-        } else {
-          await supabase.auth.signOut();
-          throw new Error("This account does not have admin privileges in Supabase.");
-        }
+        await supabase.auth.signOut();
+        throw new Error("This account does not have admin privileges in Supabase.");
       }
 
       toast.success("Welcome, admin");
@@ -271,7 +217,7 @@ function getCleanErrorMessage(err: unknown): string {
       trimmed === "null" ||
       trimmed === "undefined"
     ) {
-      return "Invalid email or password. Please verify your credentials.";
+      return "Invalid email or password. Please verify credentials or run Supabase SQL script.";
     }
 
     if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
@@ -287,11 +233,7 @@ function getCleanErrorMessage(err: unknown): string {
           return parsed.msg;
         }
       } catch {}
-      return "Invalid email or password. Please verify your credentials.";
-    }
-
-    if (trimmed.toLowerCase().includes("invalid login credentials")) {
-      return "Invalid email or password. Please check your credentials.";
+      return "Invalid email or password. Please verify credentials or run Supabase SQL script.";
     }
 
     return trimmed;
