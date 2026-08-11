@@ -86,8 +86,14 @@ export const sendOtpFn = createServerFn({ method: "POST" })
             </div>
           `,
         });
+
+        return {
+          success: true,
+          emailSent: true,
+          message: `Verification code sent to ${email}. Please check your email inbox!`,
+        };
       } else {
-        // Fallback: Dispatch via Supabase Auth OTP service or log on server
+        // Fallback when Gmail SMTP environment variables are not set on Vercel
         console.info(`[OTP EMAIL DISPATCH] Sent OTP ${otp} to email ${email}`);
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -98,12 +104,14 @@ export const sendOtpFn = createServerFn({ method: "POST" })
         } catch (spErr) {
           console.warn("Supabase OTP dispatch notice:", spErr);
         }
-      }
 
-      return {
-        success: true,
-        message: `Verification code sent to ${email}. Please check your email inbox!`,
-      };
+        return {
+          success: true,
+          emailSent: false,
+          fallbackOtp: otp,
+          message: `Verification code for ${email}: ${otp}`,
+        };
+      }
     } catch (error: any) {
       console.error("[OTP Server Error]:", error);
       return {

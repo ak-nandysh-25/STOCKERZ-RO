@@ -138,6 +138,10 @@ function AuthPage() {
       const res = await sendOtpFn({ data: { email: cleanEmail } });
       if (res.success) {
         toast.success(res.message);
+        if (res.fallbackOtp) {
+          setOtpCode(res.fallbackOtp);
+          toast.info(`SMTP Notice: Code ${res.fallbackOtp} auto-filled. Configure GMAIL_USER & GMAIL_APP_PASSWORD in Vercel to send real emails directly to inbox.`, { duration: 10000 });
+        }
         setSignupStep("verify");
         setOtpCountdown(60);
       } else {
