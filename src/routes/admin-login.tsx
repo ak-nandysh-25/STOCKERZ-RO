@@ -1,18 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { provisionAdminServerFn, logAuthActivityServerFn } from "@/lib/admin-provision-server";
+import { provisionAdminServerFn } from "@/lib/admin-provision-server";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
     meta: [
-      { title: "System Admin Sign In — STOCKERZ RO" },
-      { name: "description", content: "System Administrator sign in to view all registered shops on STOCKERZ RO." },
-      { property: "og:title", content: "System Admin Sign In — STOCKERZ RO" },
-      { property: "og:description", content: "System Administrator sign in to view all registered shops on STOCKERZ RO." },
+      { title: "Admin sign in — STOCKERZ RO" },
+      { name: "description", content: "Administrator access to view every shop registered on STOCKERZ RO." },
+      { property: "og:title", content: "Admin sign in — STOCKERZ RO" },
+      { property: "og:description", content: "Administrator access to view every shop registered on STOCKERZ RO." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -22,21 +22,12 @@ export const Route = createFileRoute("/admin-login")({
 
 function AdminLogin() {
   const nav = useNavigate();
-  const [email, setEmail] = useState("aknandysh26@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check existing admin session
-    if (typeof window !== "undefined") {
-      const activeAdmin = localStorage.getItem("stockerz_admin_user");
-      if (activeAdmin) {
-        nav({ to: "/admin" });
-        return;
-      }
-    }
-
     const checkAdmin = async (userId: string) => {
       const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
       if (isAdmin) nav({ to: "/admin" });
@@ -45,91 +36,87 @@ function AdminLogin() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) checkAdmin(data.session.user.id);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) checkAdmin(session.user.id);
+    });
+
+    return () => subscription.unsubscribe();
   }, [nav]);
 
-  async function handleAdminLogin(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail || !cleanEmail.includes("@")) {
-      toast.error("Please enter a valid admin email address");
-      return;
-    }
-
-    const AUTHORIZED_ADMIN = "aknandysh26@gmail.com";
-    if (cleanEmail !== AUTHORIZED_ADMIN) {
-      toast.error(`Access restricted. "${cleanEmail}" is not authorized for system admin access.`);
-      return;
-    }
-
-    if (!password) {
-      toast.error("Please enter the admin password");
-      return;
-    }
-
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+    const ADMIN_EMAIL = "aknandysh26@gmail.com";
+
+    if (cleanEmail !== ADMIN_EMAIL) {
+      toast.error(`Access restricted. ${cleanEmail} is not authorized for system admin access.`);
+      setLoading(false);
+      return;
+    }
+
     try {
-      // 1. Auto-provision server admin role/credentials if needed
+      // Step 1: Auto-provision admin user on the server (bypasses email confirmation requirement)
       try {
-        await provisionAdminServerFn({
-          data: { email: cleanEmail, password },
-        });
+        await provisionAdminServerFn({ data: { email: cleanEmail, password } });
       } catch (provErr) {
         console.warn("Server admin provision notice:", provErr);
       }
 
-      // 2. Sign in with password
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Step 2: Sign in with password
+      let { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
 
-      if (signInError && !signInData?.user) {
-        // Fallback: If password doesn't match default, provision with default or show error
-        try {
-          await provisionAdminServerFn({
-            data: { email: cleanEmail, password: "adminpassword123" },
-          });
-          const { error: retryError } = await supabase.auth.signInWithPassword({
+      // Step 3: Fallback signup if account not created yet
+      if (error) {
+        const signUpRes = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+        });
+        if (signUpRes.data?.user) {
+          const retryRes = await supabase.auth.signInWithPassword({
             email: cleanEmail,
-            password: "adminpassword123",
+            password,
           });
-          if (retryError) {
-            throw signInError;
+          if (retryRes.data?.user) {
+            data = retryRes.data;
+            error = null;
           }
-        } catch (_) {
-          throw signInError;
         }
       }
 
-      // Log admin login activity in auth_logs
-      try {
-        await logAuthActivityServerFn({
-          data: {
-            email: cleanEmail,
-            eventType: "admin_login",
-            shopName: "SYSTEM ADMIN",
-            status: "success",
-          },
-        });
-      } catch (logErr) {
-        console.warn("Admin log notice:", logErr);
+      if (error) {
+        throw error;
       }
 
-      // Store admin session in localStorage
-      if (typeof window !== "undefined") {
-        localStorage.setItem("stockerz_admin_user", cleanEmail);
+      if (!data?.user) {
+        throw new Error("Invalid email or password.");
       }
 
-      toast.success("Welcome, System Administrator!");
+      // Step 4: Verify Admin Role
+      const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
+        _user_id: data.user.id,
+        _role: "admin",
+      });
 
-      if (typeof window !== "undefined") {
-        window.location.href = "/admin";
-      } else {
-        nav({ to: "/admin", replace: true });
+      if (roleErr) {
+        console.warn("has_role check warning:", roleErr);
       }
+
+      if (!isAdmin) {
+        await supabase.auth.signOut();
+        throw new Error("This account does not have admin privileges in Supabase.");
+      }
+
+      toast.success("Welcome, admin");
+      nav({ to: "/admin" });
     } catch (err: any) {
-      toast.error(err.message || "Admin sign-in failed. Please check credentials.");
+      console.error("Admin sign-in error:", err);
+      const msg = getCleanErrorMessage(err);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -148,25 +135,20 @@ function AdminLogin() {
           <ThemeToggle />
         </div>
 
-        <h1 className="text-2xl font-bold">Admin Sign In</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Enter your authorized admin email and password to access system control center.
-        </p>
+        <h1 className="text-2xl font-bold">Admin sign in</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Restricted access. Admin accounts only.</p>
 
-        <form onSubmit={handleAdminLogin} className="mt-6 space-y-4">
+        <form onSubmit={submit} className="mt-6 space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Authorized Admin Email</span>
-            <div className="relative">
-              <input
-                type="email"
-                required
-                placeholder="aknandysh26@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
-              />
-              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            </div>
+            <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</span>
+            <input
+              type="email"
+              required
+              placeholder="aknandysh26@gmail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+            />
           </label>
 
           <label className="block">
@@ -175,15 +157,16 @@ function AdminLogin() {
               <input
                 type={showPw ? "text" : "password"}
                 required
-                placeholder="••••••••"
+                minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
               />
               <button
                 type="button"
-                onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPw((v) => !v)}
+                aria-label={showPw ? "Hide password" : "Show password"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -193,24 +176,77 @@ function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60"
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <ShieldCheck className="h-4 w-4" /> Sign In to Admin Control Center
-              </>
-            )}
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Sign in as admin
           </button>
         </form>
 
-        <div className="mt-6 flex items-center justify-between text-sm border-t border-white/10 pt-4">
+        <div className="mt-6 flex items-center justify-between text-sm">
           <Link to="/auth" search={{ mode: "login" }} className="text-muted-foreground hover:text-foreground">
-            Not an admin? <span className="text-foreground font-medium">Showroom Sign In</span>
+            Not an admin? <span className="text-foreground">Shop sign in</span>
+          </Link>
+          <Link to="/auth" search={{ mode: "forgot" }} className="text-xs text-muted-foreground hover:text-primary transition">
+            Forgot password?
           </Link>
         </div>
       </div>
     </div>
   );
+}
+
+function getCleanErrorMessage(err: unknown): string {
+  if (!err) return "Sign in failed. Please check your credentials.";
+
+  let raw: string | undefined;
+
+  if (typeof err === "string") {
+    raw = err;
+  } else if (err instanceof Error && err.message) {
+    raw = err.message;
+  } else if (typeof err === "object" && err !== null) {
+    const e = err as Record<string, any>;
+    raw =
+      typeof e.message === "string"
+        ? e.message
+        : typeof e.error_description === "string"
+        ? e.error_description
+        : typeof e.error === "string"
+        ? e.error
+        : undefined;
+  }
+
+  if (raw) {
+    const trimmed = raw.trim();
+    if (
+      trimmed === "{}" ||
+      trimmed === "[]" ||
+      trimmed === "[object Object]" ||
+      trimmed === "null" ||
+      trimmed === "undefined"
+    ) {
+      return "Invalid email or password. Please verify credentials or run Supabase SQL script.";
+    }
+
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed?.message && typeof parsed.message === "string" && parsed.message.trim() !== "{}") {
+          return parsed.message;
+        }
+        if (parsed?.error_description && typeof parsed.error_description === "string") {
+          return parsed.error_description;
+        }
+        if (parsed?.msg && typeof parsed.msg === "string") {
+          return parsed.msg;
+        }
+      } catch {}
+      return "Invalid email or password. Please verify credentials or run Supabase SQL script.";
+    }
+
+    return trimmed;
+  }
+
+  return "Invalid admin email or password.";
 }

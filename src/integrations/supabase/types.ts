@@ -264,45 +264,6 @@ export type Database = {
           },
         ]
       }
-      auth_logs: {
-        Row: {
-          created_at: string
-          details: Json | null
-          email: string
-          event_type: string
-          id: string
-          ip_address: string | null
-          shop_name: string | null
-          status: string
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          details?: Json | null
-          email: string
-          event_type: string
-          id?: string
-          ip_address?: string | null
-          shop_name?: string | null
-          status?: string
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          details?: Json | null
-          email?: string
-          event_type?: string
-          id?: string
-          ip_address?: string | null
-          shop_name?: string | null
-          status?: string
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       shops: {
         Row: {
           address: string | null
@@ -311,7 +272,6 @@ export type Database = {
           email: string | null
           gst: string | null
           id: string
-          last_login_at: string | null
           logo_url: string | null
           name: string
           owner_id: string
@@ -324,7 +284,6 @@ export type Database = {
           email?: string | null
           gst?: string | null
           id?: string
-          last_login_at?: string | null
           logo_url?: string | null
           name?: string
           owner_id: string
@@ -337,7 +296,6 @@ export type Database = {
           email?: string | null
           gst?: string | null
           id?: string
-          last_login_at?: string | null
           logo_url?: string | null
           name?: string
           owner_id?: string

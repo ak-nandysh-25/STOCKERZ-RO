@@ -6,7 +6,8 @@ import { ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Mail, ShieldCh
 import { toast } from "sonner";
 import { z } from "zod";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { registerShopUserServerFn, logAuthActivityServerFn } from "@/lib/admin-provision-server";
+import { sendOtpFn, verifyOtpFn } from "@/lib/otp-server";
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
 
@@ -15,9 +16,9 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — STOCKERZ RO" },
-      { name: "description", content: "Sign in to your shop or register a new shop on STOCKERZ RO." },
+      { name: "description", content: "Sign in to your shop or register a new shop with email verification." },
       { property: "og:title", content: "Sign in — STOCKERZ RO" },
-      { property: "og:description", content: "Sign in to your shop or register a new shop on STOCKERZ RO." },
+      { property: "og:description", content: "Sign in to your shop or register a new shop with email verification." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -37,6 +38,9 @@ function AuthPage() {
     search.mode === "signup" || search.mode === "forgot" ? search.mode : "login"
   );
 
+  // Registration step state ("details" = shop info & password, "verify" = 6-digit OTP code)
+  const [signupStep, setSignupStep] = useState<"details" | "verify">("details");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -46,6 +50,11 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
+  // OTP state
+  const [otpCode, setOtpCode] = useState("");
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [devOtpMessage, setDevOtpMessage] = useState<string | null>(null);
+
   const hasMinLength = password.length >= 8;
   const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
@@ -54,6 +63,7 @@ function AuthPage() {
   useEffect(() => {
     if (search.mode === "signup" || search.mode === "forgot" || search.mode === "login") {
       setMode(search.mode);
+      setSignupStep("details");
     }
   }, [search.mode]);
 
@@ -71,8 +81,15 @@ function AuthPage() {
     return () => subscription.unsubscribe();
   }, [nav]);
 
-  // Single-Step Shop Registration (Direct creation without OTP)
-  async function handleRegisterShop(e: React.FormEvent) {
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
+
+  // Step 1 of Signup: Validate shop form and send OTP code to email
+  async function handleRegisterStart(e: React.FormEvent) {
     e.preventDefault();
     if (!shop.name.trim()) {
       toast.error("Please enter your shop name");
@@ -101,11 +118,11 @@ function AuthPage() {
     }
 
     setLoading(true);
+    setDevOtpMessage(null);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const shopTitle = shop.name.trim().toUpperCase() || "MY SHOP";
 
-      // Check if a shop is already registered with this email
+      // Check if a shop is already registered with this email (One email = One shop)
       const { data: existingShop } = await supabase
         .from("shops")
         .select("id, name")
@@ -113,18 +130,49 @@ function AuthPage() {
         .maybeSingle();
 
       if (existingShop) {
-        toast.error(`A shop named "${existingShop.name}" is already registered with email ${cleanEmail}. Please sign in.`);
+        toast.error(`A shop named "${existingShop.name}" is already registered with email ${cleanEmail}. Please sign in to access your shop.`);
         setLoading(false);
         return;
       }
 
-      // Provision user account on server so credentials work seamlessly
-      try {
-        await registerShopUserServerFn({
-          data: { email: cleanEmail, password, shopName: shopTitle },
-        });
-      } catch (srvErr) {
-        console.warn("Server user register notice:", srvErr);
+      const res = await sendOtpFn({ data: { email: cleanEmail } });
+      if (res.success) {
+        toast.success(res.message);
+        if (res.devMode && res.otp) {
+          setDevOtpMessage(`Dev mode notice: Your verification code is ${res.otp}`);
+        }
+        setSignupStep("verify");
+        setOtpCountdown(60);
+      } else {
+        toast.error(res.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send verification code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Step 2 of Signup: Verify OTP code, create user account & create shop profile
+  async function handleVerifyAndRegisterShop(e: React.FormEvent) {
+    e.preventDefault();
+    if (otpCode.length !== 6) {
+      toast.error("Please enter the complete 6-digit OTP verification code");
+      return;
+    }
+    setLoading(true);
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const res = await verifyOtpFn({ data: { email: cleanEmail, otp: otpCode } });
+      if (!res.success) {
+        toast.error(res.message);
+        setLoading(false);
+        return;
+      }
+
+      // Store OTP user session in localStorage for immediate protected route hydration
+      if (typeof window !== "undefined") {
+        localStorage.setItem("stockerz_otp_user", cleanEmail);
       }
 
       // 1. Create account or sign in with password
@@ -150,10 +198,28 @@ function AuthPage() {
       }
 
       const activeUser = authUser || (await supabase.auth.getUser()).data?.user;
-      const targetUserId = activeUser?.id;
+      const targetUserId = activeUser?.id || "otp-user-" + btoa(cleanEmail);
+      const shopTitle = shop.name.trim().toUpperCase() || "MY SHOP";
 
-      if (targetUserId) {
-        // 2. Link & Upsert shop profile
+      // 2. Link & Upsert shop profile with confirmed details
+      const { data: existingShop } = await supabase
+        .from("shops")
+        .select("id, owner_id")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+
+      if (existingShop) {
+        await supabase
+          .from("shops")
+          .update({
+            owner_id: targetUserId,
+            name: shopTitle,
+            contact: shop.contact.trim() || null,
+            gst: shop.gst.trim().toUpperCase() || null,
+            address: shop.address.trim().toUpperCase() || null,
+          })
+          .eq("id", existingShop.id);
+      } else {
         await supabase.from("shops").upsert(
           {
             owner_id: targetUserId,
@@ -168,23 +234,7 @@ function AuthPage() {
       }
 
       await qc.invalidateQueries({ queryKey: ["shop"] });
-
-      // Log successful registration activity in auth_logs
-      try {
-        await logAuthActivityServerFn({
-          data: {
-            email: cleanEmail,
-            eventType: "registration",
-            shopName: shopTitle,
-            userId: activeUser?.id,
-            status: "success",
-          },
-        });
-      } catch (logErr) {
-        console.warn("Auth log notice:", logErr);
-      }
-
-      toast.success(`Shop "${shopTitle}" registered successfully!`);
+      toast.success(`Shop "${shopTitle}" verified & registered successfully!`);
 
       if (typeof window !== "undefined") {
         window.location.href = "/dashboard";
@@ -192,16 +242,6 @@ function AuthPage() {
         nav({ to: "/dashboard", replace: true });
       }
     } catch (err: any) {
-      try {
-        await logAuthActivityServerFn({
-          data: {
-            email: email.trim().toLowerCase(),
-            eventType: "registration",
-            shopName: shop.name.trim(),
-            status: "failed",
-          },
-        });
-      } catch (_) {}
       toast.error(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
@@ -218,71 +258,47 @@ function AuthPage() {
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-
-      // Register or verify user/shop record on server
-      const srvRes = await registerShopUserServerFn({
-        data: { email: cleanEmail, password, shopName: "MY SHOP" },
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
       });
+      if (error) throw error;
 
-      let loggedInUser = null;
-      try {
-        const { data: signInData } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-        if (signInData?.user) loggedInUser = signInData.user;
-      } catch (err) {
-        console.warn("Supabase password auth notice:", err);
+      if (data.user) {
+        const { data: userShop } = await supabase
+          .from("shops")
+          .select("id")
+          .eq("owner_id", data.user.id)
+          .maybeSingle();
+
+        if (!userShop && cleanEmail) {
+          const { data: shopByEmail } = await supabase
+            .from("shops")
+            .select("id")
+            .eq("email", cleanEmail)
+            .maybeSingle();
+
+          if (shopByEmail) {
+            await supabase
+              .from("shops")
+              .update({ owner_id: data.user.id })
+              .eq("id", shopByEmail.id);
+          } else {
+            await supabase.from("shops").upsert(
+              {
+                owner_id: data.user.id,
+                name: "MY SHOP",
+                email: cleanEmail,
+              },
+              { onConflict: "owner_id" }
+            );
+          }
+        }
       }
 
-      if (srvRes.success || loggedInUser) {
-        // Log successful password sign-in
-        try {
-          await logAuthActivityServerFn({
-            data: {
-              email: cleanEmail,
-              eventType: "login_password",
-              userId: loggedInUser?.id,
-              status: "success",
-            },
-          });
-        } catch (logErr) {
-          console.warn("Auth log notice:", logErr);
-        }
-
-        await qc.invalidateQueries({ queryKey: ["shop"] });
-        toast.success("Welcome back!");
-
-        if (typeof window !== "undefined") {
-          window.location.href = "/dashboard";
-        } else {
-          nav({ to: "/dashboard", replace: true });
-        }
-        return;
-      }
-
-      // Log failed login attempt
-      try {
-        await logAuthActivityServerFn({
-          data: {
-            email: cleanEmail,
-            eventType: "login_password",
-            status: "failed",
-          },
-        });
-      } catch (_) {}
-
-      toast.error("Invalid email or password. Please check credentials.");
+      toast.success("Welcome back!");
+      nav({ to: "/dashboard" });
     } catch (err: any) {
-      try {
-        await logAuthActivityServerFn({
-          data: {
-            email: email.trim().toLowerCase(),
-            eventType: "login_password",
-            status: "failed",
-          },
-        });
-      } catch (_) {}
       toast.error(err.message ?? "Invalid email or password");
     } finally {
       setLoading(false);
@@ -302,18 +318,6 @@ function AuthPage() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-
-      // Log password reset attempt
-      try {
-        await logAuthActivityServerFn({
-          data: {
-            email: email.trim().toLowerCase(),
-            eventType: "password_reset",
-            status: "success",
-          },
-        });
-      } catch (_) {}
-
       setResetSent(true);
       toast.success("Password reset link sent to your email!");
     } catch (err: any) {
@@ -338,14 +342,18 @@ function AuthPage() {
           {mode === "login"
             ? "Sign in"
             : mode === "signup"
-            ? "Create your shop"
+            ? signupStep === "details"
+              ? "Create your shop"
+              : "Verify New Shop Confirmation"
             : "Reset password"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {mode === "login"
             ? "Sign in to access your shop dashboard"
             : mode === "signup"
-            ? "Fill out your showroom details to register a new shop"
+            ? signupStep === "details"
+              ? "Fill out your showroom details to register a new shop"
+              : `Enter the 6-digit confirmation code sent to ${email}`
             : "Enter your registered email to receive a password reset link"}
         </p>
 
@@ -409,155 +417,242 @@ function AuthPage() {
           </form>
         )}
 
-        {/* ----------------- MODE 2: REGISTER NEW SHOP (DIRECT REGISTRATION) ----------------- */}
+        {/* ----------------- MODE 2: REGISTER NEW SHOP (WITH OTP VERIFICATION) ----------------- */}
         {mode === "signup" && (
-          <form onSubmit={handleRegisterShop} className="mt-6 space-y-4">
-            <Field label="Shop name">
-              <input
-                type="text"
-                required
-                value={shop.name}
-                onChange={(e) => setShop({ ...shop, name: e.target.value })}
-                placeholder="AQUA PURE RO"
-                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data"
-              />
-            </Field>
+          <>
+            {signupStep === "details" ? (
+              /* Step 1: Fill Shop Details & Set Password */
+              <form onSubmit={handleRegisterStart} className="mt-6 space-y-4">
+                <Field label="Shop name">
+                  <input
+                    type="text"
+                    required
+                    value={shop.name}
+                    onChange={(e) => setShop({ ...shop, name: e.target.value })}
+                    placeholder="AQUA PURE RO"
+                    className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data"
+                  />
+                </Field>
 
-            <Field label="Contact number">
-              <input
-                type="tel"
-                required
-                maxLength={10}
-                value={shop.contact}
-                onChange={(e) => setShop({ ...shop, contact: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                placeholder="10-digit mobile number"
-                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary font-mono tracking-wider"
-              />
-              {shop.contact.length > 0 && (
-                <div className="mt-1 text-xs">
-                  <div className={`flex items-center gap-1.5 transition ${isValidContact ? "text-emerald-400 font-medium" : "text-amber-400"}`}>
-                    <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${isValidContact ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-amber-500/20 text-amber-400 font-bold"}`}>
-                      {isValidContact ? "✓" : "!"}
-                    </span>
-                    <span>{isValidContact ? "Valid 10-digit contact number" : `${shop.contact.length}/10 digits`}</span>
+                <Field label="Contact number">
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    value={shop.contact}
+                    onChange={(e) => setShop({ ...shop, contact: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                    placeholder="10-digit mobile number"
+                    className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary font-mono tracking-wider"
+                  />
+                  {shop.contact.length > 0 && (
+                    <div className="mt-1 text-xs">
+                      <div className={`flex items-center gap-1.5 transition ${isValidContact ? "text-emerald-400 font-medium" : "text-amber-400"}`}>
+                        <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${isValidContact ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-amber-500/20 text-amber-400 font-bold"}`}>
+                          {isValidContact ? "✓" : "!"}
+                        </span>
+                        <span>{isValidContact ? "Valid 10-digit contact number" : `${shop.contact.length}/10 digits`}</span>
+                      </div>
+                    </div>
+                  )}
+                </Field>
+
+                <Field label="GST number (optional)">
+                  <input
+                    type="text"
+                    value={shop.gst}
+                    onChange={(e) => setShop({ ...shop, gst: e.target.value })}
+                    placeholder="27AAAAA0000A1Z5"
+                    className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data"
+                  />
+                </Field>
+
+                <Field label="Shop address">
+                  <textarea
+                    rows={2}
+                    value={shop.address}
+                    onChange={(e) => setShop({ ...shop, address: e.target.value })}
+                    placeholder="Showroom street address, city"
+                    className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data"
+                  />
+                </Field>
+
+                <Field label="Email address (for OTP verification)">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="owner@yourshop.com"
+                    className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </Field>
+
+                <Field label="Password">
+                  <div className="relative">
+                    <input
+                      type={showPw ? "text" : "password"}
+                      required
+                      minLength={8}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw((v) => !v)}
+                      aria-label={showPw ? "Hide password" : "Show password"}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <div className="mt-2 space-y-1 text-xs">
+                    <div className={`flex items-center gap-1.5 transition ${hasMinLength ? "text-emerald-400 font-medium" : "text-muted-foreground"}`}>
+                      <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${hasMinLength ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-white/10 text-muted-foreground"}`}>
+                        {hasMinLength ? "✓" : "•"}
+                      </span>
+                      <span>At least 8 characters</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 transition ${hasSpecialChar ? "text-emerald-400 font-medium" : "text-muted-foreground"}`}>
+                      <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${hasSpecialChar ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-white/10 text-muted-foreground"}`}>
+                        {hasSpecialChar ? "✓" : "•"}
+                      </span>
+                      <span>At least 1 special character (!@#$%^&*)</span>
+                    </div>
+                  </div>
+                </Field>
+
+                <Field label="Confirm password">
+                  <div className="relative">
+                    <input
+                      type={showConfirmPw ? "text" : "password"}
+                      required
+                      minLength={8}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter password"
+                      className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPw((v) => !v)}
+                      aria-label={showConfirmPw ? "Hide confirm password" : "Show confirm password"}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {confirmPassword.length > 0 && (
+                    <div className="mt-1.5 text-xs">
+                      <div className={`flex items-center gap-1.5 transition ${passwordsMatch ? "text-emerald-400 font-medium" : "text-red-400"}`}>
+                        <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${passwordsMatch ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-red-500/20 text-red-400 font-bold"}`}>
+                          {passwordsMatch ? "✓" : "✕"}
+                        </span>
+                        <span>{passwordsMatch ? "Passwords match" : "Passwords do not match"}</span>
+                      </div>
+                    </div>
+                  )}
+                </Field>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      Verify & Register Shop →
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* Step 2: Confirm OTP Code to Register Shop */
+              <form onSubmit={handleVerifyAndRegisterShop} className="mt-6 space-y-5">
+                {/* Shop Confirmation Summary Header */}
+                <div className="rounded-xl border border-primary/20 bg-primary/10 p-3.5 text-xs space-y-1">
+                  <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                    <ShieldCheck className="h-4 w-4" />
+                    Confirming New Shop Registration
+                  </div>
+                  <div className="text-muted-foreground pt-1">
+                    <span className="font-semibold text-foreground">{shop.name.toUpperCase() || "MY SHOP"}</span>
+                    {" • "}{shop.contact}{" • "}{email}
                   </div>
                 </div>
-              )}
-            </Field>
 
-            <Field label="GST number (optional)">
-              <input
-                type="text"
-                value={shop.gst}
-                onChange={(e) => setShop({ ...shop, gst: e.target.value })}
-                placeholder="27AAAAA0000A1Z5"
-                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data"
-              />
-            </Field>
-
-            <Field label="Shop address">
-              <textarea
-                rows={2}
-                value={shop.address}
-                onChange={(e) => setShop({ ...shop, address: e.target.value })}
-                placeholder="Showroom street address, city"
-                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary uppercase-data"
-              />
-            </Field>
-
-            <Field label="Email address">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="owner@yourshop.com"
-                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
-              />
-            </Field>
-
-            <Field label="Password">
-              <div className="relative">
-                <input
-                  type={showPw ? "text" : "password"}
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                  className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  aria-label={showPw ? "Hide password" : "Show password"}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              <div className="mt-2 space-y-1 text-xs">
-                <div className={`flex items-center gap-1.5 transition ${hasMinLength ? "text-emerald-400 font-medium" : "text-muted-foreground"}`}>
-                  <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${hasMinLength ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-white/10 text-muted-foreground"}`}>
-                    {hasMinLength ? "✓" : "•"}
-                  </span>
-                  <span>At least 8 characters</span>
-                </div>
-                <div className={`flex items-center gap-1.5 transition ${hasSpecialChar ? "text-emerald-400 font-medium" : "text-muted-foreground"}`}>
-                  <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${hasSpecialChar ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-white/10 text-muted-foreground"}`}>
-                    {hasSpecialChar ? "✓" : "•"}
-                  </span>
-                  <span>At least 1 special character (!@#$%^&*)</span>
-                </div>
-              </div>
-            </Field>
-
-            <Field label="Confirm password">
-              <div className="relative">
-                <input
-                  type={showConfirmPw ? "text" : "password"}
-                  required
-                  minLength={8}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter password"
-                  className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPw((v) => !v)}
-                  aria-label={showConfirmPw ? "Hide confirm password" : "Show confirm password"}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              {confirmPassword.length > 0 && (
-                <div className="mt-1.5 text-xs">
-                  <div className={`flex items-center gap-1.5 transition ${passwordsMatch ? "text-emerald-400 font-medium" : "text-red-400"}`}>
-                    <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${passwordsMatch ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-red-500/20 text-red-400 font-bold"}`}>
-                      {passwordsMatch ? "✓" : "✕"}
-                    </span>
-                    <span>{passwordsMatch ? "Passwords match" : "Passwords do not match"}</span>
+                {devOtpMessage && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 font-mono">
+                    {devOtpMessage}
                   </div>
-                </div>
-              )}
-            </Field>
+                )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  Register Shop →
-                </>
-              )}
-            </button>
-          </form>
+                <div className="flex flex-col items-center justify-center py-2">
+                  <span className="mb-2 text-xs font-medium text-muted-foreground">
+                    Enter 6-Digit Email Verification Code
+                  </span>
+                  <InputOTP
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(val) => setOtpCode(val)}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                    </InputOTPGroup>
+                    <InputOTPSeparator />
+                    <InputOTPGroup>
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || otpCode.length !== 6}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 py-2.5 text-sm font-bold text-black shadow-lg shadow-emerald-500/20 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" /> Confirm & Create Shop
+                    </>
+                  )}
+                </button>
+
+                <div className="flex items-center justify-between pt-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSignupStep("details")}
+                    className="text-muted-foreground hover:text-foreground font-medium"
+                  >
+                    ← Edit Shop Details
+                  </button>
+
+                  {otpCountdown > 0 ? (
+                    <span className="text-muted-foreground">
+                      Resend code in <strong className="text-foreground">{otpCountdown}s</strong>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => handleRegisterStart(e)}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      Resend OTP Code
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+          </>
         )}
 
         {/* ----------------- MODE 3: FORGOT PASSWORD ----------------- */}
@@ -599,6 +694,7 @@ function AuthPage() {
             <button
               onClick={() => {
                 setMode("signup");
+                setSignupStep("details");
               }}
               className="text-muted-foreground hover:text-foreground cursor-pointer"
             >
@@ -608,6 +704,7 @@ function AuthPage() {
             <button
               onClick={() => {
                 setMode("login");
+                setSignupStep("details");
               }}
               className="text-muted-foreground hover:text-foreground cursor-pointer"
             >
@@ -617,6 +714,7 @@ function AuthPage() {
             <button
               onClick={() => {
                 setMode("login");
+                setSignupStep("details");
               }}
               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
             >

@@ -1,33 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getShopByEmailServerFn } from "@/lib/admin-provision-server";
-
-export async function getActiveUser() {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) return user;
-  } catch (_) {}
-
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData?.session?.user) return sessionData.session.user;
-  } catch (_) {}
-
-  if (typeof window !== "undefined") {
-    const adminEmail = localStorage.getItem("stockerz_admin_user");
-    if (adminEmail) {
-      return { id: "admin-user-" + btoa(adminEmail), email: adminEmail } as any;
-    }
-  }
-
-  return null;
-}
 
 export function useShop() {
   return useQuery({
     queryKey: ["shop"],
     queryFn: async () => {
-      const activeUser = await getActiveUser();
+      const { data: { user } } = await supabase.auth.getUser();
+      let activeUser = user;
+
+      if (!activeUser) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        activeUser = sessionData?.session?.user ?? null;
+      }
+
+      let otpEmail: string | null = null;
+      if (typeof window !== "undefined") {
+        otpEmail = localStorage.getItem("stockerz_otp_user");
+      }
+
+      if (!activeUser && otpEmail) {
+        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
+      }
+
       if (!activeUser) return null;
 
       // 1. Check shop by owner_id
@@ -40,7 +34,7 @@ export function useShop() {
       if (existingShop) return existingShop;
 
       // 2. If not found by owner_id, check by email link
-      const emailToSearch = activeUser.email;
+      const emailToSearch = activeUser.email || otpEmail;
       if (emailToSearch) {
         const { data: shopByEmail } = await supabase
           .from("shops")
@@ -58,14 +52,6 @@ export function useShop() {
 
           if (updatedShop) return updatedShop;
           return shopByEmail;
-        }
-
-        // Server function fallback (bypasses RLS issues)
-        try {
-          const srvShopRes = await getShopByEmailServerFn({ data: { email: emailToSearch } });
-          if (srvShopRes?.shop) return srvShopRes.shop;
-        } catch (e) {
-          console.warn("Server shop lookup notice:", e);
         }
       }
 

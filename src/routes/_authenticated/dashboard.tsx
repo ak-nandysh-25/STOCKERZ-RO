@@ -61,6 +61,15 @@ function Dashboard() {
         activeUser = sessionData?.session?.user ?? null;
       }
 
+      let otpEmail: string | null = null;
+      if (typeof window !== "undefined") {
+        otpEmail = localStorage.getItem("stockerz_otp_user");
+      }
+
+      if (!activeUser && otpEmail) {
+        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
+      }
+
       if (!activeUser) return null;
 
       const { data: existingShop } = await supabase
@@ -71,7 +80,7 @@ function Dashboard() {
 
       if (existingShop) return existingShop;
 
-      const emailToSearch = activeUser.email;
+      const emailToSearch = activeUser.email || otpEmail;
       if (emailToSearch) {
         const { data: shopByEmail } = await supabase
           .from("shops")

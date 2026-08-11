@@ -309,37 +309,3 @@ CREATE POLICY "Authenticated Update Shop Logos" ON storage.objects
 CREATE POLICY "Authenticated Delete Shop Logos" ON storage.objects
   FOR DELETE TO authenticated USING (bucket_id = 'shop-logos');
 
--- 11. LAST LOGIN AT COLUMN ON SHOPS
-ALTER TABLE public.shops ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
-
--- 12. AUTH & SIGNIN LOGS TABLE
-CREATE TABLE IF NOT EXISTS public.auth_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  email TEXT NOT NULL,
-  event_type TEXT NOT NULL CHECK (event_type IN ('registration', 'login_password', 'login_otp', 'admin_login', 'password_reset', 'login_failed')),
-  shop_name TEXT,
-  ip_address TEXT,
-  user_agent TEXT,
-  status TEXT NOT NULL DEFAULT 'success',
-  details JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-GRANT SELECT, INSERT ON public.auth_logs TO authenticated, anon;
-GRANT ALL ON public.auth_logs TO service_role;
-ALTER TABLE public.auth_logs ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users view own auth logs" ON public.auth_logs;
-CREATE POLICY "Users view own auth logs" ON public.auth_logs FOR SELECT TO authenticated
-  USING (email = (SELECT email FROM auth.users WHERE id = auth.uid()) OR user_id = auth.uid());
-
-DROP POLICY IF EXISTS "Allow logging auth events" ON public.auth_logs;
-CREATE POLICY "Allow logging auth events" ON public.auth_logs FOR INSERT TO authenticated, anon
-  WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Admins full access on auth_logs" ON public.auth_logs;
-CREATE POLICY "Admins full access on auth_logs" ON public.auth_logs FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-
-

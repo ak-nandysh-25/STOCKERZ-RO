@@ -38,22 +38,11 @@ export const Route = createFileRoute("/admin")({
     ],
   }),
   beforeLoad: async () => {
-    // 1. Check local OTP admin session
-    if (typeof window !== "undefined") {
-      const adminEmail = localStorage.getItem("stockerz_admin_user");
-      if (adminEmail) {
-        return { user: { id: "admin-user-" + btoa(adminEmail), email: adminEmail } };
-      }
-    }
-
-    // 2. Check Supabase user & admin role
     const { data, error } = await supabase.auth.getUser();
-    if (!error && data?.user) {
-      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
-      if (isAdmin) return { user: data.user };
-    }
-
-    throw redirect({ to: "/admin-login" });
+    if (error || !data.user) throw redirect({ to: "/admin-login" });
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
+    if (!isAdmin) throw redirect({ to: "/admin-login" });
+    return { user: data.user };
   },
   component: AdminControlCenter,
 });
@@ -77,7 +66,7 @@ type ShopRow = {
   lowStock: number;
 };
 
-type ActiveTab = "shops" | "supabaseUsers" | "sales" | "inventory" | "services" | "authLogs";
+type ActiveTab = "shops" | "sales" | "inventory" | "services";
 
 function AdminControlCenter() {
   const nav = useNavigate();
@@ -128,8 +117,6 @@ function AdminControlCenter() {
             serviceItems: sData.serviceItems ?? [],
             products: sData.products ?? [],
             technicians: sData.technicians ?? [],
-            authLogs: sData.authLogs ?? [],
-            supabaseUsers: sData.supabaseUsers ?? [],
           };
         }
       } catch (err) {
@@ -137,14 +124,13 @@ function AdminControlCenter() {
       }
 
       // Fallback to client query
-      const [shops, sales, services, serviceItems, products, technicians, authLogs] = await Promise.all([
+      const [shops, sales, services, serviceItems, products, technicians] = await Promise.all([
         supabase.from("shops").select("*").order("created_at", { ascending: false }),
         supabase.from("sales").select("*").order("created_at", { ascending: false }),
         supabase.from("services").select("*").order("created_at", { ascending: false }),
         supabase.from("service_items").select("*"),
         supabase.from("products").select("*").order("model", { ascending: true }),
         supabase.from("technicians").select("*"),
-        supabase.from("auth_logs").select("*").order("created_at", { ascending: false }).limit(200),
       ]);
 
       return {
@@ -154,8 +140,6 @@ function AdminControlCenter() {
         serviceItems: serviceItems.data ?? [],
         products: products.data ?? [],
         technicians: technicians.data ?? [],
-        authLogs: authLogs.data ?? [],
-        supabaseUsers: [],
       };
     },
   });
@@ -224,32 +208,7 @@ function AdminControlCenter() {
     });
   }, [data, q]);
 
-  // Processed Auth & Sign-in Logs
-  const filteredAuthLogs = useMemo(() => {
-    if (!data || !data.authLogs) return [];
-    const term = q.trim().toLowerCase();
-    return data.authLogs.filter((log: any) => {
-      if (!term) return true;
-      return [log.email, log.event_type, log.shop_name, log.status]
-        .some((v) => (v ?? "").toLowerCase().includes(term));
-    });
-  }, [data, q]);
-
-  // Processed Supabase Auth Users
-  const filteredSupabaseUsers = useMemo(() => {
-    if (!data || !data.supabaseUsers) return [];
-    const term = q.trim().toLowerCase();
-    return data.supabaseUsers.filter((u: any) => {
-      if (!term) return true;
-      return [u.id, u.email, u.shop_name, u.role, u.phone, u.provider]
-        .some((v) => (v ?? "").toLowerCase().includes(term));
-    });
-  }, [data, q]);
-
   async function signOut() {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("stockerz_admin_user");
-    }
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut();
@@ -496,11 +455,9 @@ function AdminControlCenter() {
         <div className="flex items-center gap-2 p-1.5 rounded-2xl glass overflow-x-auto">
           {[
             { key: "shops", label: `Shops (${shopsList.length})`, icon: Store },
-            { key: "supabaseUsers", label: `Supabase Users (${filteredSupabaseUsers.length})`, icon: Users },
             { key: "sales", label: `All Sales (${filteredSales.length})`, icon: ShoppingCart },
             { key: "inventory", label: `Global Stock (${filteredProducts.length})`, icon: Package },
             { key: "services", label: `Service Calls (${filteredServices.length})`, icon: Wrench },
-            { key: "authLogs", label: `Auth & Signin Logs (${filteredAuthLogs.length})`, icon: ShieldCheck },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -818,138 +775,6 @@ function AdminControlCenter() {
                         <Td className="text-amber-400 font-medium font-mono">
                           {fmtDate(svc.next_service_date)}
                         </Td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-            )}
-          </Card>
-        </div>
-      )}
-
-      {/* TAB 5: AUTH & SIGNIN LOGS */}
-      {activeTab === "authLogs" && (
-        <div className="mt-6">
-          <Card>
-            {isLoading ? (
-              <Empty text="Loading auth logs…" />
-            ) : filteredAuthLogs.length === 0 ? (
-              <Empty text="No registration or sign-in logs found" />
-            ) : (
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>Timestamp</Th>
-                    <Th>Email Address</Th>
-                    <Th>Shop Name</Th>
-                    <Th>Event Type</Th>
-                    <Th>Status</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAuthLogs.map((log: any) => {
-                    const eventLabel =
-                      log.event_type === "registration"
-                        ? "New Shop Register"
-                        : log.event_type === "login_password"
-                        ? "Password Sign In"
-                        : log.event_type === "login_otp"
-                        ? "OTP Sign In"
-                        : log.event_type === "admin_login"
-                        ? "System Admin Login"
-                        : log.event_type === "password_reset"
-                        ? "Password Reset Request"
-                        : log.event_type;
-
-                    const eventBadgeColor =
-                      log.event_type === "registration"
-                        ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                        : log.event_type === "admin_login"
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                        : log.event_type === "password_reset"
-                        ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
-                        : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
-
-                    return (
-                      <tr key={log.id}>
-                        <Td className="text-xs font-mono text-muted-foreground">{fmtDate(log.created_at)}</Td>
-                        <Td className="font-semibold text-foreground">{log.email}</Td>
-                        <Td className="text-muted-foreground font-medium">{log.shop_name ?? "—"}</Td>
-                        <Td>
-                          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${eventBadgeColor}`}>
-                            {eventLabel}
-                          </span>
-                        </Td>
-                        <Td>
-                          {log.status === "success" ? (
-                            <span className="text-xs font-bold text-emerald-400">SUCCESS</span>
-                          ) : (
-                            <span className="text-xs font-bold text-rose-400">FAILED</span>
-                          )}
-                        </Td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-            )}
-          </Card>
-        </div>
-      )}
-
-      {/* TAB 6: SUPABASE AUTH USERS */}
-      {activeTab === "supabaseUsers" && (
-        <div className="mt-6">
-          <Card>
-            {isLoading ? (
-              <Empty text="Loading Supabase Auth Users…" />
-            ) : filteredSupabaseUsers.length === 0 ? (
-              <Empty text="No Supabase Auth users found" />
-            ) : (
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>User ID</Th>
-                    <Th>Email & Status</Th>
-                    <Th>Linked Showroom</Th>
-                    <Th>Role</Th>
-                    <Th>Auth Method</Th>
-                    <Th>Created Date</Th>
-                    <Th>Last Sign In</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSupabaseUsers.map((u: any) => {
-                    const isConfirmed = !!u.email_confirmed_at;
-                    const roleColor =
-                      u.role === "admin"
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                        : "bg-blue-500/20 text-blue-300 border-blue-500/30";
-
-                    return (
-                      <tr key={u.id}>
-                        <Td className="font-mono text-xs text-muted-foreground" title={u.id}>
-                          {u.id.length > 18 ? u.id.slice(0, 8) + "…" + u.id.slice(-4) : u.id}
-                        </Td>
-                        <Td>
-                          <div className="font-bold text-foreground">{u.email}</div>
-                          <div className="mt-0.5 flex items-center gap-1.5">
-                            <span className={`inline-block h-2 w-2 rounded-full ${isConfirmed ? "bg-emerald-400" : "bg-amber-400"}`} />
-                            <span className="text-[10px] uppercase font-semibold text-muted-foreground">
-                              {isConfirmed ? "Confirmed Email" : "OTP / Unconfirmed"}
-                            </span>
-                          </div>
-                        </Td>
-                        <Td className="font-semibold text-primary">{upper(u.shop_name)}</Td>
-                        <Td>
-                          <span className={`inline-flex items-center text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${roleColor}`}>
-                            {u.role}
-                          </span>
-                        </Td>
-                        <Td className="text-xs uppercase font-mono text-muted-foreground">{u.provider}</Td>
-                        <Td className="text-xs font-mono text-muted-foreground">{fmtDate(u.created_at)}</Td>
-                        <Td className="text-xs font-mono text-emerald-400 font-medium">{fmtDate(u.last_sign_in_at)}</Td>
                       </tr>
                     );
                   })}
