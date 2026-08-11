@@ -58,14 +58,6 @@ export const Route = createFileRoute("/_authenticated")({
       return { user: sessionData.session.user };
     }
 
-    // OTP Auth session check
-    if (typeof window !== "undefined") {
-      const otpEmail = localStorage.getItem("stockerz_otp_user");
-      if (otpEmail) {
-        return { user: { id: "otp-user-" + btoa(otpEmail), email: otpEmail } };
-      }
-    }
-
     throw redirect({ to: "/auth" });
   },
   component: Shell,
@@ -128,15 +120,6 @@ function Shell() {
         activeUser = sessionData?.session?.user ?? null;
       }
 
-      let otpEmail: string | null = null;
-      if (typeof window !== "undefined") {
-        otpEmail = localStorage.getItem("stockerz_otp_user");
-      }
-
-      if (!activeUser && otpEmail) {
-        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
-      }
-
       if (!activeUser) return null;
 
       // 1. Check shop by owner_id
@@ -149,7 +132,7 @@ function Shell() {
       if (existingShop) return existingShop;
 
       // 2. If not found by owner_id, check by email link
-      const emailToSearch = activeUser.email || otpEmail;
+      const emailToSearch = activeUser.email;
       if (emailToSearch) {
         const { data: shopByEmail } = await supabase
           .from("shops")
@@ -189,9 +172,6 @@ function Shell() {
   });
 
   async function signOut() {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("stockerz_otp_user");
-    }
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut();

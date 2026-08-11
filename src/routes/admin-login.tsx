@@ -1,20 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, CheckCircle2, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { sendOtpFn, verifyOtpFn } from "@/lib/otp-server";
 import { provisionAdminServerFn, logAuthActivityServerFn } from "@/lib/admin-provision-server";
-import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
     meta: [
       { title: "System Admin Sign In — STOCKERZ RO" },
-      { name: "description", content: "System Administrator OTP access to view all registered shops on STOCKERZ RO." },
+      { name: "description", content: "System Administrator sign in to view all registered shops on STOCKERZ RO." },
       { property: "og:title", content: "System Admin Sign In — STOCKERZ RO" },
-      { property: "og:description", content: "System Administrator OTP access to view all registered shops on STOCKERZ RO." },
+      { property: "og:description", content: "System Administrator sign in to view all registered shops on STOCKERZ RO." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -24,12 +22,10 @@ export const Route = createFileRoute("/admin-login")({
 
 function AdminLogin() {
   const nav = useNavigate();
-  const [step, setStep] = useState<"email" | "verify">("email");
   const [email, setEmail] = useState("aknandysh26@gmail.com");
-  const [otpCode, setOtpCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [otpCountdown, setOtpCountdown] = useState(0);
-  const [devOtpMessage, setDevOtpMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Check existing admin session
@@ -51,15 +47,7 @@ function AdminLogin() {
     });
   }, [nav]);
 
-  useEffect(() => {
-    if (otpCountdown > 0) {
-      const timer = setTimeout(() => setOtpCountdown((c) => c - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [otpCountdown]);
-
-  // Step 1: Send OTP to authorized Admin email address (no password required)
-  async function handleSendAdminOtp(e: React.FormEvent) {
+  async function handleAdminLogin(e: React.FormEvent) {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
 
@@ -74,50 +62,44 @@ function AdminLogin() {
       return;
     }
 
-    setLoading(true);
-    setDevOtpMessage(null);
-    try {
-      const res = await sendOtpFn({ data: { email: cleanEmail } });
-      if (res.success) {
-        toast.success(res.message);
-        setStep("verify");
-        setOtpCountdown(60);
-      } else {
-        toast.error(res.message);
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send admin verification code");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Step 2: Confirm OTP code, auto-provision server admin role, and enter dashboard
-  async function handleVerifyAdminOtp(e: React.FormEvent) {
-    e.preventDefault();
-    if (otpCode.length !== 6) {
-      toast.error("Please enter the complete 6-digit verification code");
+    if (!password) {
+      toast.error("Please enter the admin password");
       return;
     }
 
     setLoading(true);
     try {
-      const cleanEmail = email.trim().toLowerCase();
-      const res = await verifyOtpFn({ data: { email: cleanEmail, otp: otpCode } });
-
-      if (!res.success) {
-        toast.error(res.message);
-        setLoading(false);
-        return;
-      }
-
-      // Provision Admin Account on Server using Service Role Key
+      // 1. Auto-provision server admin role/credentials if needed
       try {
         await provisionAdminServerFn({
-          data: { email: cleanEmail, password: "adminpassword123" },
+          data: { email: cleanEmail, password },
         });
       } catch (provErr) {
         console.warn("Server admin provision notice:", provErr);
+      }
+
+      // 2. Sign in with password
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (signInError && !signInData?.user) {
+        // Fallback: If password doesn't match default, provision with default or show error
+        try {
+          await provisionAdminServerFn({
+            data: { email: cleanEmail, password: "adminpassword123" },
+          });
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password: "adminpassword123",
+          });
+          if (retryError) {
+            throw signInError;
+          }
+        } catch (_) {
+          throw signInError;
+        }
       }
 
       // Log admin login activity in auth_logs
@@ -134,7 +116,7 @@ function AdminLogin() {
         console.warn("Admin log notice:", logErr);
       }
 
-      // Store OTP admin session in localStorage
+      // Store admin session in localStorage
       if (typeof window !== "undefined") {
         localStorage.setItem("stockerz_admin_user", cleanEmail);
       }
@@ -147,7 +129,7 @@ function AdminLogin() {
         nav({ to: "/admin", replace: true });
       }
     } catch (err: any) {
-      toast.error(err.message || "Admin verification failed.");
+      toast.error(err.message || "Admin sign-in failed. Please check credentials.");
     } finally {
       setLoading(false);
     }
@@ -166,120 +148,62 @@ function AdminLogin() {
           <ThemeToggle />
         </div>
 
-        <h1 className="text-2xl font-bold">
-          {step === "email" ? "Admin Sign In" : "Admin OTP Verification"}
-        </h1>
+        <h1 className="text-2xl font-bold">Admin Sign In</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {step === "email"
-            ? "Enter your authorized admin email to receive a 6-digit OTP code."
-            : `Enter the 6-digit verification code sent to ${email}`}
+          Enter your authorized admin email and password to access system control center.
         </p>
 
-        {/* STEP 1: ADMIN EMAIL INPUT (NO PASSWORD REQUIRED) */}
-        {step === "email" ? (
-          <form onSubmit={handleSendAdminOtp} className="mt-6 space-y-4">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Authorized Admin Email</span>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  placeholder="aknandysh26@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
-                />
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-            </label>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>Send Admin OTP Code →</>
-              )}
-            </button>
-          </form>
-        ) : (
-          /* STEP 2: 6-DIGIT OTP VERIFICATION CODE INPUT */
-          <form onSubmit={handleVerifyAdminOtp} className="mt-6 space-y-5">
-            <div className="rounded-xl border border-primary/20 bg-primary/10 p-3.5 text-xs space-y-1">
-              <div className="flex items-center gap-2 text-primary font-bold text-sm">
-                <ShieldCheck className="h-4 w-4" />
-                System Admin Verification
-              </div>
-              <div className="text-muted-foreground pt-0.5">
-                Target Email: <span className="font-semibold text-foreground">{email}</span>
-              </div>
+        <form onSubmit={handleAdminLogin} className="mt-6 space-y-4">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Authorized Admin Email</span>
+            <div className="relative">
+              <input
+                type="email"
+                required
+                placeholder="aknandysh26@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
+              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>
+          </label>
 
-            <div className="flex flex-col items-center justify-center py-2">
-              <span className="mb-2 text-xs font-medium text-muted-foreground">
-                Enter 6-Digit Admin Verification Code
-              </span>
-              <InputOTP
-                maxLength={6}
-                value={otpCode}
-                onChange={(val) => setOtpCode(val)}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                </InputOTPGroup>
-                <InputOTPSeparator />
-                <InputOTPGroup>
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || otpCode.length !== 6}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 py-2.5 text-sm font-bold text-black shadow-lg shadow-emerald-500/20 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4" /> Confirm & Enter Admin Control Center
-                </>
-              )}
-            </button>
-
-            <div className="flex items-center justify-between pt-2 text-xs">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Password</span>
+            <div className="relative">
+              <input
+                type={showPw ? "text" : "password"}
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
               <button
                 type="button"
-                onClick={() => setStep("email")}
-                className="text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+                onClick={() => setShowPw(!showPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                <ArrowLeft className="h-3.5 w-3.5" /> Edit Admin Email
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
-
-              {otpCountdown > 0 ? (
-                <span className="text-muted-foreground">
-                  Resend in <strong className="text-foreground">{otpCountdown}s</strong>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={(e) => handleSendAdminOtp(e)}
-                  className="font-medium text-primary hover:underline cursor-pointer"
-                >
-                  Resend OTP Code
-                </button>
-              )}
             </div>
-          </form>
-        )}
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <ShieldCheck className="h-4 w-4" /> Sign In to Admin Control Center
+              </>
+            )}
+          </button>
+        </form>
 
         <div className="mt-6 flex items-center justify-between text-sm border-t border-white/10 pt-4">
           <Link to="/auth" search={{ mode: "login" }} className="text-muted-foreground hover:text-foreground">

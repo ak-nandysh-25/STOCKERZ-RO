@@ -14,10 +14,6 @@ export async function getActiveUser() {
   } catch (_) {}
 
   if (typeof window !== "undefined") {
-    const otpEmail = localStorage.getItem("stockerz_otp_user");
-    if (otpEmail) {
-      return { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
-    }
     const adminEmail = localStorage.getItem("stockerz_admin_user");
     if (adminEmail) {
       return { id: "admin-user-" + btoa(adminEmail), email: adminEmail } as any;
@@ -34,8 +30,6 @@ export function useShop() {
       const activeUser = await getActiveUser();
       if (!activeUser) return null;
 
-      const otpEmail = typeof window !== "undefined" ? localStorage.getItem("stockerz_otp_user") : null;
-
       // 1. Check shop by owner_id
       const { data: existingShop } = await supabase
         .from("shops")
@@ -46,7 +40,7 @@ export function useShop() {
       if (existingShop) return existingShop;
 
       // 2. If not found by owner_id, check by email link
-      const emailToSearch = activeUser.email || otpEmail;
+      const emailToSearch = activeUser.email;
       if (emailToSearch) {
         const { data: shopByEmail } = await supabase
           .from("shops")
