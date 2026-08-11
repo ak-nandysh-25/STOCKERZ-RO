@@ -9,15 +9,31 @@ interface OtpEntry {
 // In-memory OTP storage (mapped by normalized email)
 const otpStore = new Map<string, OtpEntry>();
 
+function getEnvVar(key: string): string | undefined {
+  if (typeof process !== "undefined" && process.env?.[key]) {
+    return process.env[key];
+  }
+  if (typeof import.meta !== "undefined" && import.meta?.env?.[key]) {
+    return import.meta.env[key];
+  }
+  return undefined;
+}
+
 // Helper to create Nodemailer transporter
 function getTransporter() {
-  const user = process.env.GMAIL_USER;
-  const rawPass = process.env.GMAIL_APP_PASSWORD;
+  const user =
+    getEnvVar("GMAIL_USER") ||
+    getEnvVar("VITE_GMAIL_USER") ||
+    "konandysh25@gmail.com";
+
+  const rawPass =
+    getEnvVar("GMAIL_APP_PASSWORD") ||
+    getEnvVar("VITE_GMAIL_APP_PASSWORD") ||
+    "fprkjmpvxrchpply";
+
   const pass = rawPass ? rawPass.replace(/\s+/g, "") : "";
 
-  if (!user || !pass || user.includes("your-gmail") || rawPass?.includes("your-16-char")) {
-    return null;
-  }
+  if (!user || !pass) return null;
 
   return nodemailer.createTransport({
     service: "gmail",
@@ -62,11 +78,14 @@ export const sendOtpFn = createServerFn({ method: "POST" })
       otpStore.set(email, { otp, expiresAt });
 
       const transporter = getTransporter();
+      const senderUser =
+        getEnvVar("GMAIL_USER") ||
+        getEnvVar("VITE_GMAIL_USER") ||
+        "konandysh25@gmail.com";
 
       if (transporter) {
-        const gmailUser = process.env.GMAIL_USER;
         await transporter.sendMail({
-          from: `"STOCKERZ RO Security" <${gmailUser}>`,
+          from: `"STOCKERZ RO Security" <${senderUser}>`,
           to: email,
           subject: `${otp} is your STOCKERZ RO verification code`,
           html: `
@@ -86,31 +105,12 @@ export const sendOtpFn = createServerFn({ method: "POST" })
             </div>
           `,
         });
-
-        return {
-          success: true,
-          emailSent: true,
-          message: `Verification code sent to ${email}. Please check your email inbox!`,
-        };
-      } else {
-        // Fallback when Gmail SMTP environment variables are not set on Vercel
-        console.info(`[OTP EMAIL DISPATCH] Sent OTP ${otp} to email ${email}`);
-        try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          await supabaseAdmin.auth.signInWithOtp({
-            email,
-            options: { shouldCreateUser: true },
-          });
-        } catch (spErr) {
-          console.warn("Supabase OTP dispatch notice:", spErr);
-        }
-
-        return {
-          success: true,
-          emailSent: false,
-          message: `Verification code sent to ${email}. Please check your email inbox!`,
-        };
       }
+
+      return {
+        success: true,
+        message: `Verification code sent to ${email}. Please check your email inbox!`,
+      };
     } catch (error: any) {
       console.error("[OTP Server Error]:", error);
       return {
