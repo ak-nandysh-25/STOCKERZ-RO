@@ -138,9 +138,6 @@ function AuthPage() {
       const res = await sendOtpFn({ data: { email: cleanEmail } });
       if (res.success) {
         toast.success(res.message);
-        if (res.devMode && res.otp) {
-          setDevOtpMessage(`Verification Code: ${res.otp}`);
-        }
         setSignupStep("verify");
         setOtpCountdown(60);
       } else {
@@ -583,25 +580,6 @@ function AuthPage() {
                     {" • "}{shop.contact}{" • "}{email}
                   </div>
                 </div>
-
-                {devOtpMessage && (
-                  <div
-                    onClick={() => {
-                      const code = devOtpMessage.replace(/\D/g, "");
-                      if (code.length === 6) setOtpCode(code);
-                    }}
-                    className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-foreground font-medium cursor-pointer hover:bg-emerald-500/20 transition"
-                    title="Click to auto-fill code"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-extrabold tracking-widest text-emerald-400 bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/30">
-                        {devOtpMessage.replace(/\D/g, "")}
-                      </span>
-                      <span className="text-muted-foreground text-[11px]">Verification Code (Tap to fill)</span>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded">Auto-fill →</span>
-                  </div>
-                )}
 
                 <div className="flex flex-col items-center justify-center py-2">
                   <span className="mb-2 text-xs font-medium text-muted-foreground">
