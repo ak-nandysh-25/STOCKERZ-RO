@@ -39,62 +39,64 @@ export const provisionAdminServerFn = createServerFn({ method: "POST" })
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-      // Check if user exists in auth.users
+      // Priority 1: Try database RPC function setup_admin_credentials
+      try {
+        const { data: rpcRes, error: rpcErr } = await (supabaseAdmin.rpc as any)("setup_admin_credentials", {
+          _email: email,
+          _password: password,
+        });
+
+        if (!rpcErr && rpcRes !== false) {
+          return { success: true, message: "Admin account provisioned via RPC." };
+        }
+      } catch (rpcCatchErr) {
+        console.warn("RPC setup_admin_credentials notice:", rpcCatchErr);
+      }
+
+      // Priority 2: Fallback to admin auth API if service key is configured
       let userId: string | null = null;
-      const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
-      if (!listErr && usersData?.users) {
-        const existing = usersData.users.find((u) => u.email?.toLowerCase() === email);
-        if (existing) {
-          userId = existing.id;
+      try {
+        const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
+        if (!listErr && usersData?.users) {
+          const existing = usersData.users.find((u) => u.email?.toLowerCase() === email);
+          if (existing) {
+            userId = existing.id;
+          }
         }
-      }
 
-      if (userId) {
-        // Update password and confirm email
-        await supabaseAdmin.auth.admin.updateUserById(userId, {
-          password,
-          email_confirm: true,
-        });
-      } else {
-        // Create user with email confirmed
-        const { data: newUserData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: { shop_name: "STOCKERZ RO ADMIN" },
-        });
+        if (userId) {
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            password,
+            email_confirm: true,
+          });
+        } else {
+          const { data: newUserData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { shop_name: "STOCKERZ RO ADMIN" },
+          });
 
-        if (createErr) {
-          console.warn("Create admin user note:", createErr);
-        } else if (newUserData?.user) {
-          userId = newUserData.user.id;
+          if (!createErr && newUserData?.user) {
+            userId = newUserData.user.id;
+          }
         }
-      }
 
-      if (userId) {
-        // Grant admin role
-        await supabaseAdmin.from("user_roles").upsert(
-          { user_id: userId, role: "admin" },
-          { onConflict: "user_id,role" }
-        );
+        if (userId) {
+          await supabaseAdmin.from("user_roles").upsert(
+            { user_id: userId, role: "admin" },
+            { onConflict: "user_id,role" }
+          );
 
-        // Create shop record
-        await supabaseAdmin.from("shops").upsert(
-          { owner_id: userId, name: "STOCKERZ RO ADMIN", email },
-          { onConflict: "owner_id" }
-        );
+          await supabaseAdmin.from("shops").upsert(
+            { owner_id: userId, name: "STOCKERZ RO ADMIN", email },
+            { onConflict: "owner_id" }
+          );
 
-        return { success: true, message: "Admin account provisioned successfully." };
-      }
-
-      // Fallback to RPC if admin client list/create did not yield user ID
-      const { error: rpcErr } = await (supabaseAdmin.rpc as any)("setup_admin_credentials", {
-        _email: email,
-        _password: password,
-      });
-
-      if (!rpcErr) {
-        return { success: true, message: "Admin account provisioned via RPC." };
+          return { success: true, message: "Admin account provisioned via admin auth API." };
+        }
+      } catch (adminApiErr) {
+        console.warn("supabaseAdmin auth.admin call notice:", adminApiErr);
       }
 
       return { success: false, message: "Could not provision admin account." };
