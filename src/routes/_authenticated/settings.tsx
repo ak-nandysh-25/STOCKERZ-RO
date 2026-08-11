@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Upload, Loader2, Trash2 } from "lucide-react";
 
+import { getActiveUser } from "@/lib/app-utils";
+
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Shop Profile — STOCKERZ RO" }] }),
   component: Page,
@@ -36,11 +38,11 @@ function Page() {
 
   const save = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+      const activeUser = await getActiveUser();
+      if (!activeUser) throw new Error("User not authenticated. Please sign in again.");
 
       const payload = {
-        owner_id: user.id,
+        owner_id: activeUser.id,
         name: f.name.toUpperCase(),
         contact: f.contact,
         email: f.email,
@@ -90,9 +92,9 @@ function Page() {
     };
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const activeUser = await getActiveUser();
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const path = `${user?.id ?? "shop"}/${Date.now()}-${sanitizedName}`;
+      const path = `${activeUser?.id ?? "shop"}/${Date.now()}-${sanitizedName}`;
 
       let { error } = await supabase.storage.from("shop-logos").upload(path, file, { upsert: true });
 

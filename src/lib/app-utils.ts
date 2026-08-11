@@ -2,28 +2,39 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getShopByEmailServerFn } from "@/lib/admin-provision-server";
 
+export async function getActiveUser() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) return user;
+  } catch (_) {}
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session?.user) return sessionData.session.user;
+  } catch (_) {}
+
+  if (typeof window !== "undefined") {
+    const otpEmail = localStorage.getItem("stockerz_otp_user");
+    if (otpEmail) {
+      return { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
+    }
+    const adminEmail = localStorage.getItem("stockerz_admin_user");
+    if (adminEmail) {
+      return { id: "admin-user-" + btoa(adminEmail), email: adminEmail } as any;
+    }
+  }
+
+  return null;
+}
+
 export function useShop() {
   return useQuery({
     queryKey: ["shop"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      let activeUser = user;
-
-      if (!activeUser) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        activeUser = sessionData?.session?.user ?? null;
-      }
-
-      let otpEmail: string | null = null;
-      if (typeof window !== "undefined") {
-        otpEmail = localStorage.getItem("stockerz_otp_user");
-      }
-
-      if (!activeUser && otpEmail) {
-        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
-      }
-
+      const activeUser = await getActiveUser();
       if (!activeUser) return null;
+
+      const otpEmail = typeof window !== "undefined" ? localStorage.getItem("stockerz_otp_user") : null;
 
       // 1. Check shop by owner_id
       const { data: existingShop } = await supabase
