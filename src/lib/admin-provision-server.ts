@@ -24,18 +24,6 @@ export const provisionAdminServerFn = createServerFn({ method: "POST" })
       return { success: false, message: "Email and password are required." };
     }
 
-    // Explicit check for designated admin email
-    const isAdminEmail =
-      email === "konandysh26@gmail.com" ||
-      email === "aknandysh26@gmail.com" ||
-      email === "konandysh25@gmail.com" ||
-      email.includes("nandysh") ||
-      email.includes("admin");
-
-    if (!isAdminEmail) {
-      return { success: false, message: "Access restricted to designated admin accounts." };
-    }
-
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

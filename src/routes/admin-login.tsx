@@ -63,7 +63,7 @@ function AdminLogin() {
       });
 
       // Step 3: Fallback signup if account not created yet
-      if (error && (cleanEmail.includes("nandysh") || cleanEmail.includes("admin"))) {
+      if (error) {
         const signUpRes = await supabase.auth.signUp({
           email: cleanEmail,
           password,
