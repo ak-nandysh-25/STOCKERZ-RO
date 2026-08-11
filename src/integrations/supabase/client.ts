@@ -41,11 +41,11 @@ function createSupabaseClient() {
   const SUPABASE_URL =
     getEnvVar('VITE_SUPABASE_URL') ||
     getEnvVar('SUPABASE_URL') ||
-    'https://ossgzjdayvizxirvvokk.supabase.co';
+    'https://bfoaxkwwvgzwxeuaexkg.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY =
     getEnvVar('VITE_SUPABASE_PUBLISHABLE_KEY') ||
     getEnvVar('SUPABASE_PUBLISHABLE_KEY') ||
-    'sb_publishable_W8o9O92tTQNu_8giQOk5ww_1pE8bMUh';
+    'sb_publishable_4ToAvzY1lNcjZGcuTc6fPw_6oOyC7ji';
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
