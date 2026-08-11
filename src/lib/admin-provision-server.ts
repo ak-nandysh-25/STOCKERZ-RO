@@ -24,6 +24,11 @@ export const provisionAdminServerFn = createServerFn({ method: "POST" })
       return { success: false, message: "Email and password are required." };
     }
 
+    const ADMIN_EMAIL = "aknandysh26@gmail.com";
+    if (email !== ADMIN_EMAIL) {
+      return { success: false, message: `Access restricted. ${email} is not authorized for admin access.` };
+    }
+
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

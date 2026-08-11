@@ -48,6 +48,14 @@ function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     const cleanEmail = email.trim().toLowerCase();
+    const ADMIN_EMAIL = "aknandysh26@gmail.com";
+
+    if (cleanEmail !== ADMIN_EMAIL) {
+      toast.error(`Access restricted. ${cleanEmail} is not authorized for system admin access.`);
+      setLoading(false);
+      return;
+    }
+
     try {
       // Step 1: Auto-provision admin user on the server (bypasses email confirmation requirement)
       try {
@@ -136,6 +144,7 @@ function AdminLogin() {
             <input
               type="email"
               required
+              placeholder="aknandysh26@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
