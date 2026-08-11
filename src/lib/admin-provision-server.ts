@@ -227,6 +227,22 @@ export const getAdminMasterDataServerFn = createServerFn({ method: "GET" })
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
+      // 5. Format detailed Supabase Auth Users list
+      const supabaseUsersList = authUsers.map((u: any) => {
+        const shop = mergedShops.find((s) => s.email?.toLowerCase() === u.email?.toLowerCase() || s.owner_id === u.id);
+        return {
+          id: u.id,
+          email: u.email,
+          email_confirmed_at: u.email_confirmed_at,
+          phone: u.phone || shop?.contact || null,
+          shop_name: shop?.name || u.user_metadata?.shop_name || "MY SHOP",
+          role: u.email === "aknandysh26@gmail.com" ? "admin" : "user",
+          provider: u.app_metadata?.provider || "email",
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at || shop?.last_login_at || u.created_at,
+        };
+      });
+
       return {
         success: true,
         shops: mergedShops,
@@ -236,6 +252,7 @@ export const getAdminMasterDataServerFn = createServerFn({ method: "GET" })
         products: products.data ?? [],
         technicians: technicians.data ?? [],
         authLogs: combinedLogs,
+        supabaseUsers: supabaseUsersList,
       };
     } catch (err: any) {
       console.error("getAdminMasterDataServerFn error:", err);
@@ -248,6 +265,7 @@ export const getAdminMasterDataServerFn = createServerFn({ method: "GET" })
         products: [],
         technicians: [],
         authLogs: [],
+        supabaseUsers: [],
       };
     }
   });
