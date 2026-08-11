@@ -58,14 +58,6 @@ export const Route = createFileRoute("/_authenticated")({
       return { user: sessionData.session.user };
     }
 
-    // OTP Auth session check
-    if (typeof window !== "undefined") {
-      const otpEmail = localStorage.getItem("stockerz_otp_user");
-      if (otpEmail) {
-        return { user: { id: "otp-user-" + btoa(otpEmail), email: otpEmail } };
-      }
-    }
-
     throw redirect({ to: "/auth" });
   },
   component: Shell,
@@ -121,46 +113,29 @@ function Shell() {
     queryKey: ["shop"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      let activeUser = user;
-
-      if (!activeUser) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        activeUser = sessionData?.session?.user ?? null;
-      }
-
-      let otpEmail: string | null = null;
-      if (typeof window !== "undefined") {
-        otpEmail = localStorage.getItem("stockerz_otp_user");
-      }
-
-      if (!activeUser && otpEmail) {
-        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
-      }
-
-      if (!activeUser) return null;
+      if (!user) return null;
 
       // 1. Check shop by owner_id
       const { data: existingShop } = await supabase
         .from("shops")
         .select("*")
-        .eq("owner_id", activeUser.id)
+        .eq("owner_id", user.id)
         .maybeSingle();
 
       if (existingShop) return existingShop;
 
       // 2. If not found by owner_id, check by email link
-      const emailToSearch = activeUser.email || otpEmail;
-      if (emailToSearch) {
+      if (user.email) {
         const { data: shopByEmail } = await supabase
           .from("shops")
           .select("*")
-          .eq("email", emailToSearch)
+          .eq("email", user.email)
           .maybeSingle();
 
         if (shopByEmail) {
           const { data: updatedShop } = await supabase
             .from("shops")
-            .update({ owner_id: activeUser.id })
+            .update({ owner_id: user.id })
             .eq("id", shopByEmail.id)
             .select("*")
             .single();
@@ -170,14 +145,14 @@ function Shell() {
       }
 
       // 3. Auto-upsert shop profile so valid logged-in users are never blocked
-      const shopName = activeUser.user_metadata?.shop_name || "MY SHOP";
+      const shopName = user.user_metadata?.shop_name || "MY SHOP";
       const { data: newShop } = await supabase
         .from("shops")
         .upsert(
           {
-            owner_id: activeUser.id,
+            owner_id: user.id,
             name: shopName,
-            email: emailToSearch ?? null,
+            email: user.email ?? null,
           },
           { onConflict: "owner_id" }
         )
@@ -189,9 +164,6 @@ function Shell() {
   });
 
   async function signOut() {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("stockerz_otp_user");
-    }
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut();

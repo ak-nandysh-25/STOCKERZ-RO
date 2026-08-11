@@ -140,7 +140,7 @@ function InvoicePage() {
           <ArrowLeft className="h-4 w-4" /> Back to Sales
         </Button>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant={thermalMode ? "primary" : "outline"} onClick={() => setThermalMode(!thermalMode)}>
+          <Button variant={thermalMode ? "secondary" : "outline"} onClick={() => setThermalMode(!thermalMode)}>
             {thermalMode ? "Switch to A4 Tax Invoice" : "Switch to 3\" Thermal Bill"}
           </Button>
           <Button variant="outline" onClick={() => window.print()} className="gap-2">

@@ -8,7 +8,6 @@ import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Ba
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  ssr: false,
   head: () => ({ meta: [{ title: "Dashboard — STOCKERZ RO" }] }),
   component: Dashboard,
 });
@@ -54,43 +53,13 @@ function Dashboard() {
     queryKey: ["shop"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      let activeUser = user;
-
-      if (!activeUser) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        activeUser = sessionData?.session?.user ?? null;
-      }
-
-      let otpEmail: string | null = null;
-      if (typeof window !== "undefined") {
-        otpEmail = localStorage.getItem("stockerz_otp_user");
-      }
-
-      if (!activeUser && otpEmail) {
-        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
-      }
-
-      if (!activeUser) return null;
-
-      const { data: existingShop } = await supabase
+      if (!user) return null;
+      const { data } = await supabase
         .from("shops")
         .select("*")
-        .eq("owner_id", activeUser.id)
+        .eq("owner_id", user.id)
         .maybeSingle();
-
-      if (existingShop) return existingShop;
-
-      const emailToSearch = activeUser.email || otpEmail;
-      if (emailToSearch) {
-        const { data: shopByEmail } = await supabase
-          .from("shops")
-          .select("*")
-          .eq("email", emailToSearch)
-          .maybeSingle();
-
-        if (shopByEmail) return shopByEmail;
-      }
-      return null;
+      return data;
     },
   });
 
@@ -129,33 +98,25 @@ function Dashboard() {
 
       salesRows.forEach(r => {
         if (!r.sale_date) return;
-        const parts = r.sale_date.split("-");
-        if (parts.length === 3) {
-          const y = Number(parts[0]);
-          const m = Number(parts[1]) - 1;
-          const day = Number(parts[2]);
-          if (y === year && m === month && dailyMap[day]) {
-            const amt = Number(r.price || 0) * Number(r.qty || 1);
-            if (r.source === "office") {
-              dailyMap[day].office += amt;
-            } else {
-              dailyMap[day].sales += amt;
-            }
+        const dObj = new Date(r.sale_date);
+        if (dObj.getFullYear() === year && dObj.getMonth() === month) {
+          const day = dObj.getDate();
+          const amt = Number(r.price || 0) * Number(r.qty || 1);
+          if (r.source === "office") {
+            dailyMap[day].office += amt;
+          } else {
+            dailyMap[day].sales += amt;
           }
         }
       });
 
       servicesRows.forEach(s => {
         if (!s.service_date) return;
-        const parts = s.service_date.split("-");
-        if (parts.length === 3) {
-          const y = Number(parts[0]);
-          const m = Number(parts[1]) - 1;
-          const day = Number(parts[2]);
-          if (y === year && m === month && dailyMap[day]) {
-            const itemsTotal = (s.service_items ?? []).reduce((acc: number, item: any) => acc + Number(item.price || 0), 0);
-            dailyMap[day].service += itemsTotal;
-          }
+        const dObj = new Date(s.service_date);
+        if (dObj.getFullYear() === year && dObj.getMonth() === month) {
+          const day = dObj.getDate();
+          const itemsTotal = (s.service_items ?? []).reduce((acc: number, item: any) => acc + Number(item.price || 0), 0);
+          dailyMap[day].service += itemsTotal;
         }
       });
 
