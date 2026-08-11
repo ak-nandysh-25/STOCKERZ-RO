@@ -91,6 +91,17 @@ export const provisionAdminServerFn = createServerFn({ method: "POST" })
       }
 
       if (userId) {
+        await supabaseAdmin.from("profiles").upsert(
+          {
+            id: userId,
+            email,
+            full_name: "SYSTEM ADMIN",
+            shop_name: "STOCKERZ RO ADMIN",
+            role: "admin",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        );
         return { success: true, message: "Admin account provisioned successfully." };
       }
 
@@ -341,12 +352,27 @@ export const registerShopUserServerFn = createServerFn({ method: "POST" })
             email_confirm: true,
           });
         } else {
-          await supabaseAdmin.auth.admin.createUser({
+          const { data: newUser } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
             email_confirm: true,
             user_metadata: { shop_name: targetShopName },
           });
+          if (newUser?.user) userId = newUser.user.id;
+        }
+
+        if (userId) {
+          await supabaseAdmin.from("profiles").upsert(
+            {
+              id: userId,
+              email,
+              phone: updatedShop.contact || null,
+              shop_name: targetShopName,
+              role: "user",
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
         }
       }
 

@@ -190,7 +190,10 @@ function AuthPage() {
       const { data: signUpData } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: { shop_name: shopTitle, phone: shop.contact.trim() },
+        },
       });
 
       if (signUpData?.user && signUpData.user.identities && signUpData.user.identities.length > 0) {
@@ -208,6 +211,21 @@ function AuthPage() {
 
       const activeUser = authUser || (await supabase.auth.getUser()).data?.user;
       const targetUserId = activeUser?.id || "otp-user-" + btoa(cleanEmail);
+
+      // Save user profile details to Supabase profiles table
+      if (activeUser?.id && !activeUser.id.startsWith("otp-user-")) {
+        await supabase.from("profiles").upsert(
+          {
+            id: activeUser.id,
+            email: cleanEmail,
+            phone: shop.contact.trim() || null,
+            shop_name: shopTitle,
+            role: "user",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        );
+      }
 
       // 2. Link & Upsert shop profile with confirmed details
       const { data: existingShop } = await supabase
@@ -242,6 +260,7 @@ function AuthPage() {
       }
 
       await qc.invalidateQueries({ queryKey: ["shop"] });
+      await qc.invalidateQueries({ queryKey: ["user-profile"] });
       toast.success(`Shop "${shopTitle}" verified & registered successfully!`);
 
       if (typeof window !== "undefined") {

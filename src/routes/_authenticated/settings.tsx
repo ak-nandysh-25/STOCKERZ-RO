@@ -4,21 +4,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button, Card, Field, Input, PageHeader, Textarea } from "@/components/ui-kit";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, Trash2 } from "lucide-react";
+import { Upload, Loader2, Trash2, User, Store, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Shop Profile — STOCKERZ RO" }] }),
+  head: () => ({ meta: [{ title: "Account & Shop Settings — STOCKERZ RO" }] }),
   component: Page,
 });
 
 function Page() {
   const qc = useQueryClient();
+
+  // Query 1: Shop details
   const { data: shop } = useQuery({
     queryKey: ["shop"],
     queryFn: async () => (await supabase.from("shops").select("*").maybeSingle()).data,
   });
 
+  // Query 2: User profile from Supabase profiles table
+  const { data: profile } = useQuery({
+    queryKey: ["user-profile"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      return data ?? { id: user.id, email: user.email ?? "", full_name: user.user_metadata?.full_name ?? "", phone: user.user_metadata?.phone ?? "", shop_name: user.user_metadata?.shop_name ?? "", role: "user" };
+    },
+  });
+
   const [f, setF] = useState({ name: "", contact: "", email: "", gst: "", address: "", logo_url: "" });
+  const [userProfileForm, setUserProfileForm] = useState({ full_name: "", phone: "", email: "" });
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -34,7 +48,17 @@ function Page() {
     }
   }, [shop]);
 
-  const save = useMutation({
+  useEffect(() => {
+    if (profile) {
+      setUserProfileForm({
+        full_name: profile.full_name ?? "",
+        phone: profile.phone ?? "",
+        email: profile.email ?? "",
+      });
+    }
+  }, [profile]);
+
+  const saveShop = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
@@ -65,6 +89,36 @@ function Page() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const saveUserProfile = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        email: userProfileForm.email || user.email || "",
+        full_name: userProfileForm.full_name.trim(),
+        phone: userProfileForm.phone.trim(),
+        shop_name: f.name || "MY SHOP",
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "id" });
+
+      if (error) throw error;
+
+      await supabase.auth.updateUser({
+        data: {
+          full_name: userProfileForm.full_name.trim(),
+          phone: userProfileForm.phone.trim(),
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success("User profile updated in Supabase");
+      qc.invalidateQueries({ queryKey: ["user-profile"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update user profile"),
+  });
+
   async function uploadLogo(file: File) {
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File size must be under 5MB");
@@ -73,7 +127,7 @@ function Page() {
 
     setUploading(true);
 
-    const convertToBase64 = (isFallback = true) => {
+    const convertToBase64 = () => {
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === "string") {
@@ -102,13 +156,13 @@ function Page() {
           const retry = await supabase.storage.from("shop-logos").upload(path, file, { upsert: true });
           error = retry.error;
         } catch {
-          // ignore bucket creation error and use fallback
+          // ignore bucket creation error and fallback
         }
       }
 
       if (error) {
         console.warn("Supabase storage notice:", error.message);
-        convertToBase64(true);
+        convertToBase64();
         return;
       }
 
@@ -117,24 +171,91 @@ function Page() {
         setF((prev) => ({ ...prev, logo_url: data.publicUrl }));
         toast.success("Logo uploaded successfully");
       } else {
-        convertToBase64(true);
+        convertToBase64();
       }
     } catch (err: any) {
       console.warn("Storage exception, using base64 fallback:", err);
-      convertToBase64(true);
+      convertToBase64();
     } finally {
       setUploading(false);
     }
   }
 
   return (
-    <div>
-      <PageHeader title="Shop Profile" description="Business details displayed on customer printed invoices" />
+    <div className="space-y-6">
+      <PageHeader title="Account & Shop Settings" description="Manage your user profile and showroom settings in Supabase" />
+
+      {/* SECTION 1: USER PROFILE DETAILS */}
       <Card>
+        <div className="mb-4 flex items-center gap-2 border-b border-glass-border pb-3">
+          <User className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">User Profile Details</h2>
+          <span className="ml-auto flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/20">
+            <ShieldCheck className="h-3.5 w-3.5" /> Supabase Authenticated
+          </span>
+        </div>
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            save.mutate();
+            saveUserProfile.mutate();
+          }}
+          className="grid grid-cols-1 gap-4 md:grid-cols-2"
+        >
+          <Field label="Full Name / Owner Name">
+            <Input
+              value={userProfileForm.full_name}
+              onChange={(e) => setUserProfileForm({ ...userProfileForm, full_name: e.target.value })}
+              placeholder="e.g. Anand Kumar"
+            />
+          </Field>
+
+          <Field label="Phone Number">
+            <Input
+              maxLength={10}
+              value={userProfileForm.phone}
+              onChange={(e) => setUserProfileForm({ ...userProfileForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+              placeholder="10-digit mobile number"
+              className="font-mono tracking-wider"
+            />
+          </Field>
+
+          <Field label="Account Email (Supabase Auth)">
+            <Input
+              type="email"
+              disabled
+              value={userProfileForm.email}
+              className="opacity-75 cursor-not-allowed"
+            />
+          </Field>
+
+          <Field label="Role">
+            <Input
+              disabled
+              value={profile?.role ? profile.role.toUpperCase() : "USER"}
+              className="opacity-75 cursor-not-allowed font-semibold text-primary"
+            />
+          </Field>
+
+          <div className="md:col-span-2 flex justify-end">
+            <Button disabled={saveUserProfile.isPending}>
+              {saveUserProfile.isPending ? "Updating User Profile..." : "Save User Profile"}
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      {/* SECTION 2: SHOP PROFILE & INVOICE DETAILS */}
+      <Card>
+        <div className="mb-4 flex items-center gap-2 border-b border-glass-border pb-3">
+          <Store className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Showroom Profile & Invoice Branding</h2>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveShop.mutate();
           }}
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
         >
@@ -225,8 +346,8 @@ function Page() {
             </Field>
           </div>
           <div className="md:col-span-2 flex justify-end">
-            <Button disabled={save.isPending || uploading}>
-              {save.isPending ? "Saving Profile..." : "Save Shop Profile"}
+            <Button disabled={saveShop.isPending || uploading}>
+              {saveShop.isPending ? "Saving Profile..." : "Save Shop Profile"}
             </Button>
           </div>
         </form>
