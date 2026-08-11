@@ -50,22 +50,58 @@ function AdminLogin() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) throw error;
+      let { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (error) {
+        // Fallback: If account not created in auth.users yet, attempt signup
+        const signUpRes = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+        });
+
+        if (signUpRes.data?.user) {
+          const retryRes = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
+          if (retryRes.data?.user) {
+            data = retryRes.data;
+            error = null;
+          }
+        }
+      }
+
+      if (error || !data?.user) {
+        throw error || new Error("Invalid email or password.");
+      }
+
+      // Check Admin Role
       const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
         _user_id: data.user.id,
         _role: "admin",
       });
-      if (roleErr) throw roleErr;
+
+      if (roleErr) {
+        console.warn("has_role check warning:", roleErr);
+      }
+
       if (!isAdmin) {
         await supabase.auth.signOut();
-        throw new Error("This account does not have admin access");
+        throw new Error("This account does not have admin privileges in Supabase.");
       }
-      toast.success("Welcome, admin");
+
+      toast.success("Welcome, System Administrator!");
       nav({ to: "/admin" });
     } catch (err: any) {
-      toast.error(err.message ?? "Sign in failed");
+      console.error("Admin sign-in error:", err);
+      const msg = getCleanErrorMessage(err);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -144,4 +180,28 @@ function AdminLogin() {
       </div>
     </div>
   );
+}
+
+function getCleanErrorMessage(err: unknown): string {
+  if (!err) return "Sign in failed. Please check credentials.";
+  let raw: string | undefined;
+  if (typeof err === "string") raw = err;
+  else if (err instanceof Error && err.message) raw = err.message;
+  else if (typeof err === "object" && err !== null) {
+    const e = err as Record<string, any>;
+    raw = e.message || e.error_description || e.error;
+  }
+  if (raw) {
+    const trimmed = raw.trim();
+    if (trimmed !== "{}" && trimmed !== "[]" && trimmed !== "[object Object]" && trimmed !== "null") {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed?.message && typeof parsed.message === "string" && parsed.message.trim() !== "{}") {
+          return parsed.message;
+        }
+      } catch {}
+      return trimmed;
+    }
+  }
+  return "Invalid email or password. Please run the Supabase admin creation SQL script in SQL Editor.";
 }
