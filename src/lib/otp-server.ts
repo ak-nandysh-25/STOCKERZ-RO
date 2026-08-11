@@ -108,8 +108,7 @@ export const sendOtpFn = createServerFn({ method: "POST" })
         return {
           success: true,
           emailSent: false,
-          fallbackOtp: otp,
-          message: `Verification code for ${email}: ${otp}`,
+          message: `Verification code sent to ${email}. Please check your email inbox!`,
         };
       }
     } catch (error: any) {
