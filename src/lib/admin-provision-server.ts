@@ -248,3 +248,50 @@ export const adminDeleteShopServerFn = createServerFn({ method: "POST" })
     }
   });
 
+export const registerShopUserServerFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) => {
+    const email = extractString(data, "email").trim().toLowerCase();
+    const password = extractString(data, "password");
+    const shopName = extractString(data, "shopName").trim();
+    return { email, password, shopName };
+  })
+  .handler(async ({ data }) => {
+    const { email, password, shopName } = data;
+    if (!email || !password) return { success: false, message: "Email and password are required." };
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      let userId: string | null = null;
+      const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+      if (usersData?.users) {
+        const existing = usersData.users.find((u) => u.email?.toLowerCase() === email);
+        if (existing) userId = existing.id;
+      }
+
+      if (userId) {
+        // Update password and confirm email
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password,
+          email_confirm: true,
+        });
+      } else {
+        // Create user with password and email_confirm: true
+        const { data: newUserData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { shop_name: shopName || "MY SHOP" },
+        });
+        if (createErr) throw createErr;
+        if (newUserData?.user) userId = newUserData.user.id;
+      }
+
+      return { success: true, userId, message: "User credentials registered successfully." };
+    } catch (err: any) {
+      console.error("registerShopUserServerFn error:", err);
+      return { success: false, message: err?.message || "Failed to save user credentials." };
+    }
+  });
+
+

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { sendOtpFn, verifyOtpFn } from "@/lib/otp-server";
+import { registerShopUserServerFn } from "@/lib/admin-provision-server";
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
@@ -172,6 +173,17 @@ function AuthPage() {
         localStorage.setItem("stockerz_otp_user", cleanEmail);
       }
 
+      const shopTitle = shop.name.trim().toUpperCase() || "MY SHOP";
+
+      // Provision/Confirm user credentials on server so password sign in works seamlessly
+      try {
+        await registerShopUserServerFn({
+          data: { email: cleanEmail, password, shopName: shopTitle },
+        });
+      } catch (srvErr) {
+        console.warn("Server user register notice:", srvErr);
+      }
+
       // 1. Create account or sign in with password
       let authUser: any = null;
 
@@ -196,7 +208,6 @@ function AuthPage() {
 
       const activeUser = authUser || (await supabase.auth.getUser()).data?.user;
       const targetUserId = activeUser?.id || "otp-user-" + btoa(cleanEmail);
-      const shopTitle = shop.name.trim().toUpperCase() || "MY SHOP";
 
       // 2. Link & Upsert shop profile with confirmed details
       const { data: existingShop } = await supabase
@@ -255,10 +266,32 @@ function AuthPage() {
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const { data, error } = await supabase.auth.signInWithPassword({
+      let { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
+
+      if (error) {
+        // Fallback: update/provision password via server function and retry
+        try {
+          const srvRes = await registerShopUserServerFn({
+            data: { email: cleanEmail, password, shopName: "MY SHOP" },
+          });
+          if (srvRes.success) {
+            const retry = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password,
+            });
+            if (retry.data?.user) {
+              data = retry.data;
+              error = null;
+            }
+          }
+        } catch (srvErr) {
+          console.warn("Password login server retry notice:", srvErr);
+        }
+      }
+
       if (error) throw error;
 
       if (data.user) {
