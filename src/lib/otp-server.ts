@@ -69,7 +69,7 @@ export const sendOtpFn = createServerFn({ method: "POST" })
         return {
           success: true,
           devMode: true,
-          message: `Verification code generated! (Use code ${otp} to confirm)`,
+          message: `Verification code generated for ${email}!`,
           otp: otp,
         };
       }
