@@ -38,11 +38,22 @@ export const Route = createFileRoute("/admin")({
     ],
   }),
   beforeLoad: async () => {
+    // 1. Check local OTP admin session
+    if (typeof window !== "undefined") {
+      const adminEmail = localStorage.getItem("stockerz_admin_user");
+      if (adminEmail) {
+        return { user: { id: "admin-user-" + btoa(adminEmail), email: adminEmail } };
+      }
+    }
+
+    // 2. Check Supabase user & admin role
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/admin-login" });
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
-    if (!isAdmin) throw redirect({ to: "/admin-login" });
-    return { user: data.user };
+    if (!error && data?.user) {
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
+      if (isAdmin) return { user: data.user };
+    }
+
+    throw redirect({ to: "/admin-login" });
   },
   component: AdminControlCenter,
 });
@@ -209,6 +220,9 @@ function AdminControlCenter() {
   }, [data, q]);
 
   async function signOut() {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("stockerz_admin_user");
+    }
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut();
