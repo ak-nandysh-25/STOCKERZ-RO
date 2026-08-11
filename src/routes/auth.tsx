@@ -120,7 +120,22 @@ function AuthPage() {
     setLoading(true);
     setDevOtpMessage(null);
     try {
-      const res = await sendOtpFn({ data: { email: email.trim().toLowerCase() } });
+      const cleanEmail = email.trim().toLowerCase();
+
+      // Check if a shop is already registered with this email (One email = One shop)
+      const { data: existingShop } = await supabase
+        .from("shops")
+        .select("id, name")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+
+      if (existingShop) {
+        toast.error(`A shop named "${existingShop.name}" is already registered with email ${cleanEmail}. Please sign in to access your shop.`);
+        setLoading(false);
+        return;
+      }
+
+      const res = await sendOtpFn({ data: { email: cleanEmail } });
       if (res.success) {
         toast.success(res.message);
         if (res.devMode && res.otp) {

@@ -6,14 +6,71 @@ export function useShop() {
     queryKey: ["shop"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data, error } = await supabase
+      let activeUser = user;
+
+      if (!activeUser) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        activeUser = sessionData?.session?.user ?? null;
+      }
+
+      let otpEmail: string | null = null;
+      if (typeof window !== "undefined") {
+        otpEmail = localStorage.getItem("stockerz_otp_user");
+      }
+
+      if (!activeUser && otpEmail) {
+        activeUser = { id: "otp-user-" + btoa(otpEmail), email: otpEmail } as any;
+      }
+
+      if (!activeUser) return null;
+
+      // 1. Check shop by owner_id
+      const { data: existingShop } = await supabase
         .from("shops")
         .select("*")
-        .eq("owner_id", user.id)
+        .eq("owner_id", activeUser.id)
         .maybeSingle();
-      if (error) throw error;
-      return data;
+
+      if (existingShop) return existingShop;
+
+      // 2. If not found by owner_id, check by email link
+      const emailToSearch = activeUser.email || otpEmail;
+      if (emailToSearch) {
+        const { data: shopByEmail } = await supabase
+          .from("shops")
+          .select("*")
+          .eq("email", emailToSearch)
+          .maybeSingle();
+
+        if (shopByEmail) {
+          const { data: updatedShop } = await supabase
+            .from("shops")
+            .update({ owner_id: activeUser.id })
+            .eq("id", shopByEmail.id)
+            .select("*")
+            .single();
+
+          if (updatedShop) return updatedShop;
+          return shopByEmail;
+        }
+      }
+
+      // 3. Auto-upsert shop profile if no shop exists for active user
+      const shopName = activeUser.user_metadata?.shop_name || "MY SHOP";
+      const { data: newShop } = await supabase
+        .from("shops")
+        .upsert(
+          {
+            owner_id: activeUser.id,
+            name: shopName,
+            email: emailToSearch ?? null,
+          },
+          { onConflict: "owner_id" }
+        )
+        .select("*")
+        .single();
+
+      return newShop ?? null;
     },
   });
 }
