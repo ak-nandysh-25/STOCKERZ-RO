@@ -46,7 +46,7 @@ function StockPage() {
         <Table>
           <thead>
             <tr>
-              <Th>Model</Th><Th>Category</Th><Th>Qty</Th><Th>Price</Th><Th></Th>
+              <Th>Model</Th><Th>Category</Th><Th>Type</Th><Th>Qty</Th><Th>Price</Th><Th></Th>
             </tr>
           </thead>
           <tbody>
@@ -54,6 +54,7 @@ function StockPage() {
               <tr key={p.id} className="hover:bg-white/5">
                 <Td className="font-medium">{p.model}</Td>
                 <Td>{p.category}</Td>
+                <Td>{p.product_type ?? "—"}</Td>
                 <Td>
                   <span className={p.qty <= p.low_stock_threshold ? "inline-flex items-center gap-1 text-warning" : ""}>
                     {p.qty <= p.low_stock_threshold && <AlertTriangle className="h-3 w-3" />}
@@ -81,6 +82,7 @@ function ProductModal({ open, product, onClose }: { open: boolean; product: Prod
   const [f, setF] = useState({
     model: product?.model ?? "",
     category: product?.category ?? "machine",
+    product_type: product?.product_type ?? "",
     qty: product?.qty ?? 0,
     price: product?.price ?? 0,
     low_stock_threshold: product?.low_stock_threshold ?? 5,
@@ -91,7 +93,7 @@ function ProductModal({ open, product, onClose }: { open: boolean; product: Prod
       const shop = await supabase.from("shops").select("id").maybeSingle();
       const shop_id = shop.data?.id;
       if (!shop_id) throw new Error("No shop");
-      const payload = { ...f, model: f.model.toUpperCase(), shop_id };
+      const payload = { ...f, model: f.model.toUpperCase(), product_type: f.product_type || null, shop_id };
       if (product) {
         const { error } = await supabase.from("products").update(payload).eq("id", product.id);
         if (error) throw error;
@@ -108,9 +110,12 @@ function ProductModal({ open, product, onClose }: { open: boolean; product: Prod
     <Modal open={open} onClose={onClose} title={product ? "Edit product" : "Add product"}>
       <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-3">
         <Field label="Model name"><Input required value={f.model} onChange={e => setF({ ...f, model: e.target.value })} className="uppercase-data" /></Field>
-        <Field label="Category"><Select value={f.category} onChange={e => setF({ ...f, category: e.target.value })}>
-          <option value="machine">Machine</option><option value="filter">Filter</option><option value="spare">Spare</option>
-        </Select></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Category"><Select value={f.category} onChange={e => setF({ ...f, category: e.target.value })}>
+            <option value="machine">Machine</option><option value="filter">Filter</option><option value="spare">Spare</option>
+          </Select></Field>
+          <Field label="Product type"><Input value={f.product_type ?? ""} onChange={e => setF({ ...f, product_type: e.target.value })} placeholder="e.g. Membrane" /></Field>
+        </div>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Quantity"><Input type="number" min={0} value={f.qty} onChange={e => setF({ ...f, qty: Number(e.target.value) })} /></Field>
           <Field label="Price"><Input type="number" step="0.01" min={0} value={f.price} onChange={e => setF({ ...f, price: Number(e.target.value) })} /></Field>

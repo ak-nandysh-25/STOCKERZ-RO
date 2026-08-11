@@ -206,8 +206,8 @@ function Dashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi icon={ShoppingCart} label="Today's Sales" value={fmtMoney(stats?.todaySales ?? 0)} accent="text-primary" />
         <Kpi icon={TrendingUp} label="Month Sales" value={fmtMoney(stats?.monthSales ?? 0)} accent="text-accent" />
-        <Kpi icon={Package} label="Low Stock" value={String(stats?.lowStock?.length ?? 0)} accent="text-warning" />
-        <Kpi icon={Wrench} label="Reminders Due" value={String(stats?.reminders?.length ?? 0)} accent="text-success" />
+        <Kpi icon={Package} label="Low Stock" value={String(stats?.lowStock.length ?? 0)} accent="text-warning" />
+        <Kpi icon={Wrench} label="Reminders Due" value={String(stats?.reminders.length ?? 0)} accent="text-success" />
       </div>
 
       {/* Daily Revenue Chart */}
@@ -242,7 +242,7 @@ function Dashboard() {
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Filter Reminders</h3>
             <Link to="/service" className="text-xs text-primary hover:underline">View all</Link>
           </div>
-          {stats?.reminders?.length ? (
+          {stats?.reminders.length ? (
             <ul className="space-y-2 text-sm">
               {stats.reminders.slice(0, 5).map((s) => (
                 <li key={s.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 uppercase-data">
@@ -263,7 +263,7 @@ function Dashboard() {
 
         <Card className="bg-[#0e1017] border-white/10 rounded-2xl p-5">
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Recent Services</h3>
-          {stats?.recentServices?.length ? (
+          {stats?.recentServices.length ? (
             <ul className="space-y-2 text-sm">
               {stats.recentServices.map((s) => (
                 <li key={s.id} className="flex justify-between rounded-lg bg-white/5 px-3 py-2 uppercase-data">

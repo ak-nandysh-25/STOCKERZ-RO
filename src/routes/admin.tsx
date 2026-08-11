@@ -20,11 +20,6 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  getAdminMasterDataServerFn,
-  adminCreateShopServerFn,
-  adminDeleteShopServerFn,
-} from "@/lib/admin-provision-server";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -103,27 +98,10 @@ function AdminControlCenter() {
   const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
   const [isPurgingNonAdmin, setIsPurgingNonAdmin] = useState(false);
 
-  // Fetch all administrative data (Server function bypasses RLS to always return all registered shops)
+  // Fetch all administrative data
   const { data, isLoading } = useQuery({
     queryKey: ["admin-master-data"],
     queryFn: async () => {
-      try {
-        const sData = await getAdminMasterDataServerFn();
-        if (sData && sData.success) {
-          return {
-            shops: sData.shops ?? [],
-            sales: sData.sales ?? [],
-            services: sData.services ?? [],
-            serviceItems: sData.serviceItems ?? [],
-            products: sData.products ?? [],
-            technicians: sData.technicians ?? [],
-          };
-        }
-      } catch (err) {
-        console.warn("Server admin master data notice:", err);
-      }
-
-      // Fallback to client query
       const [shops, sales, services, serviceItems, products, technicians] = await Promise.all([
         supabase.from("shops").select("*").order("created_at", { ascending: false }),
         supabase.from("sales").select("*").order("created_at", { ascending: false }),
@@ -227,32 +205,36 @@ function AdminControlCenter() {
     }
     setIsCreatingShop(true);
     try {
-      const cleanEmail = newShopEmail.trim().toLowerCase();
-      // Check if email is already in use by another shop
-      if (data?.shops?.some((s) => s.email?.toLowerCase() === cleanEmail)) {
-        toast.error(`A shop is already registered with email ${cleanEmail}. One email is allowed per shop.`);
-        setIsCreatingShop(false);
-        return;
-      }
-
-      const res = await adminCreateShopServerFn({
-        data: {
-          name: newShopName.trim(),
-          email: cleanEmail,
-          password: "password123",
-          contact: newShopContact.trim() || "",
-          gst: newShopGst.trim() || "",
-          address: newShopAddress.trim() || "",
-          logo_url: newShopLogo.trim() || "",
-        },
+      const { error } = await (supabase.rpc as any)("admin_create_shop", {
+        _name: newShopName.trim(),
+        _email: newShopEmail.trim(),
+        _password: "password123",
+        _contact: newShopContact.trim() || null,
+        _gst: newShopGst.trim() || null,
+        _address: newShopAddress.trim() || null,
+        _logo_url: newShopLogo.trim() || null,
       });
 
-      if (!res.success) {
-        toast.error(res.message);
-        return;
+      if (error) {
+        console.warn("RPC admin_create_shop notice:", error.message);
+        // Fallback to client upsert if RPC is not run in remote DB
+        const currentUser = (await supabase.auth.getUser()).data.user;
+        const { error: fallbackErr } = await supabase.from("shops").upsert(
+          {
+            name: newShopName.trim(),
+            email: newShopEmail.trim() || null,
+            contact: newShopContact.trim() || null,
+            gst: newShopGst.trim() || null,
+            address: newShopAddress.trim() || null,
+            logo_url: newShopLogo.trim() || null,
+            owner_id: currentUser?.id ?? "00000000-0000-0000-0000-000000000000",
+          },
+          { onConflict: "owner_id" }
+        );
+        if (fallbackErr) throw fallbackErr;
       }
 
-      toast.success(res.message || `Shop "${newShopName.trim()}" registered successfully`);
+      toast.success(`Shop "${newShopName.trim()}" registered successfully`);
       await qc.invalidateQueries({ queryKey: ["admin-master-data"] });
       setIsAddShopOpen(false);
       setNewShopName("");
@@ -323,10 +305,24 @@ function AdminControlCenter() {
       const shopId = deletingShop.id;
       const shopName = deletingShop.name;
 
-      const res = await adminDeleteShopServerFn({ data: { shopId } });
-      if (!res.success) {
-        // Fallback to client RPC or direct deletes
-        await (supabase.rpc as any)("delete_shop_and_user", { _shop_id: shopId });
+      // Call RPC delete_shop_and_user
+      const { error: rpcErr } = await (supabase.rpc as any)("delete_shop_and_user", {
+        _shop_id: shopId,
+      });
+
+      if (rpcErr) {
+        console.warn("RPC delete_shop_and_user fallback:", rpcErr.message);
+        // Fallback to direct client table deletes
+        await Promise.allSettled([
+          supabase.from("sales").delete().eq("shop_id", shopId),
+          supabase.from("services").delete().eq("shop_id", shopId),
+          supabase.from("service_items").delete().eq("shop_id", shopId),
+          supabase.from("products").delete().eq("shop_id", shopId),
+          supabase.from("emi_plans").delete().eq("shop_id", shopId),
+          supabase.from("technicians").delete().eq("shop_id", shopId),
+        ]);
+        const { error: delErr } = await supabase.from("shops").delete().eq("id", shopId);
+        if (delErr) throw delErr;
       }
 
       toast.success(`Shop "${shopName}" and user account deleted`);
@@ -402,10 +398,10 @@ function AdminControlCenter() {
     const salesSum = (data?.sales ?? []).reduce((a, r) => a + Number(r.price) * Number(r.qty), 0);
     const serviceItemsSum = (data?.serviceItems ?? []).reduce((a, r) => a + Number(r.price ?? 0), 0);
     return {
-      shopsCount: data?.shops?.length ?? 0,
+      shopsCount: data?.shops.length ?? 0,
       totalSalesRevenue: salesSum,
       totalServiceRevenue: serviceItemsSum,
-      totalProductsCount: data?.products?.length ?? 0,
+      totalProductsCount: data?.products.length ?? 0,
     };
   }, [data]);
 
@@ -637,7 +633,7 @@ function AdminControlCenter() {
                 </thead>
                 <tbody>
                   {filteredSales.map((sale) => {
-                    const shop = data?.shops?.find((shp) => shp.id === sale.shop_id);
+                    const shop = data?.shops.find((shp) => shp.id === sale.shop_id);
                     return (
                       <tr key={sale.id}>
                         <Td className="font-semibold text-primary">{upper(shop?.name ?? "Unknown Shop")}</Td>
@@ -692,7 +688,7 @@ function AdminControlCenter() {
                 </thead>
                 <tbody>
                   {filteredProducts.map((prod) => {
-                    const shop = data?.shops?.find((shp) => shp.id === prod.shop_id);
+                    const shop = data?.shops.find((shp) => shp.id === prod.shop_id);
                     const isLow = Number(prod.qty) <= Number(prod.low_stock_threshold);
                     return (
                       <tr key={prod.id}>
@@ -753,8 +749,8 @@ function AdminControlCenter() {
                 </thead>
                 <tbody>
                   {filteredServices.map((svc) => {
-                    const shop = data?.shops?.find((shp) => shp.id === svc.shop_id);
-                    const tech = data?.technicians?.find((t) => t.id === svc.technician_id);
+                    const shop = data?.shops.find((shp) => shp.id === svc.shop_id);
+                    const tech = data?.technicians.find((t) => t.id === svc.technician_id);
                     return (
                       <tr key={svc.id}>
                         <Td className="font-semibold text-primary">{upper(shop?.name ?? "Unknown Shop")}</Td>

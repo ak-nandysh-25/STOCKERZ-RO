@@ -390,13 +390,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      setup_admin_credentials: {
-        Args: {
-          _email: string
-          _password: string
-        }
-        Returns: boolean
-      }
     }
     Enums: {
       app_role: "admin" | "user"

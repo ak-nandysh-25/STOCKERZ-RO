@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import nodemailer from "nodemailer";
+import { z } from "zod";
 
 interface OtpEntry {
   otp: string;
@@ -28,52 +29,35 @@ function getTransporter() {
   });
 }
 
-// Helper to safely extract string payload
-function extractString(input: any, key: string): string {
-  if (!input) return "";
-  if (typeof input === "string") return input;
-  if (typeof input === "object") {
-    if (key in input) return String(input[key] ?? "");
-    if ("data" in input && typeof input.data === "object" && input.data && key in input.data) {
-      return String(input.data[key] ?? "");
-    }
-  }
-  return "";
-}
-
 // 1. Send OTP Server Function
 export const sendOtpFn = createServerFn({ method: "POST" })
   .validator((data: unknown) => {
-    const rawEmail = extractString(data, "email");
-    return { email: rawEmail };
+    return z.object({ email: z.string().email("Invalid email address") }).parse(data);
   })
   .handler(async ({ data }) => {
+    const email = data.email.toLowerCase().trim();
+    
+    // Generate cryptographically random 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+
+    // Save to store
+    otpStore.set(email, { otp, expiresAt });
+
+    const transporter = getTransporter();
+
+    // Development fallback if Gmail credentials are not set up yet
+    if (!transporter) {
+      console.warn(`[OTP DEV MODE] Gmail credentials missing in .env. OTP for ${email} is: ${otp}`);
+      return {
+        success: true,
+        devMode: true,
+        message: `OTP sent! (Dev mode: Check server logs or use code ${otp})`,
+        otp: process.env.NODE_ENV === "development" ? otp : undefined,
+      };
+    }
+
     try {
-      const email = data.email.toLowerCase().trim();
-      if (!email || !email.includes("@")) {
-        return { success: false, devMode: false, message: "Please enter a valid email address." };
-      }
-
-      // Generate cryptographically random 6-digit OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
-
-      // Save to store
-      otpStore.set(email, { otp, expiresAt });
-
-      const transporter = getTransporter();
-
-      // Fallback if Gmail credentials are not set up in environment variables
-      if (!transporter) {
-        console.warn(`[OTP MODE] Gmail SMTP credentials missing in environment. OTP for ${email} is: ${otp}`);
-        return {
-          success: true,
-          devMode: true,
-          message: `Verification code generated! (Use code ${otp} to confirm)`,
-          otp: otp,
-        };
-      }
-
       const gmailUser = process.env.GMAIL_USER;
       await transporter.sendMail({
         from: `"STOCKERZ RO Security" <${gmailUser}>`,
@@ -107,7 +91,7 @@ export const sendOtpFn = createServerFn({ method: "POST" })
       return {
         success: false,
         devMode: false,
-        message: error.message || "Failed to send OTP. Please check email address.",
+        message: error.message || "Failed to send OTP via Gmail. Please check SMTP configuration.",
       };
     }
   });
@@ -115,51 +99,44 @@ export const sendOtpFn = createServerFn({ method: "POST" })
 // 2. Verify OTP Server Function
 export const verifyOtpFn = createServerFn({ method: "POST" })
   .validator((data: unknown) => {
-    return {
-      email: extractString(data, "email"),
-      otp: extractString(data, "otp"),
-    };
+    return z.object({
+      email: z.string().email(),
+      otp: z.string().length(6, "OTP must be 6 digits"),
+    }).parse(data);
   })
   .handler(async ({ data }) => {
-    try {
-      const email = data.email.toLowerCase().trim();
-      const inputOtp = data.otp.trim();
+    const email = data.email.toLowerCase().trim();
+    const inputOtp = data.otp.trim();
 
-      const record = otpStore.get(email);
+    const record = otpStore.get(email);
 
-      if (!record) {
-        return {
-          success: false,
-          message: "No OTP request found for this email. Please request a new code.",
-        };
-      }
-
-      if (Date.now() > record.expiresAt) {
-        otpStore.delete(email);
-        return {
-          success: false,
-          message: "OTP code has expired. Please request a new code.",
-        };
-      }
-
-      if (record.otp !== inputOtp) {
-        return {
-          success: false,
-          message: "Incorrect verification code. Please check your email and try again.",
-        };
-      }
-
-      // OTP verified successfully - consume it
-      otpStore.delete(email);
-
-      return {
-        success: true,
-        message: "OTP verified successfully!",
-      };
-    } catch (error: any) {
+    if (!record) {
       return {
         success: false,
-        message: error.message || "Verification error occurred.",
+        message: "No OTP request found for this email. Please request a new code.",
       };
     }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(email);
+      return {
+        success: false,
+        message: "OTP code has expired. Please request a new code.",
+      };
+    }
+
+    if (record.otp !== inputOtp) {
+      return {
+        success: false,
+        message: "Incorrect verification code. Please check your email and try again.",
+      };
+    }
+
+    // OTP verified successfully - consume it
+    otpStore.delete(email);
+
+    return {
+      success: true,
+      message: "OTP verified successfully!",
+    };
   });

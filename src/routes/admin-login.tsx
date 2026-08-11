@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { provisionAdminServerFn } from "@/lib/admin-provision-server";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
@@ -19,6 +18,8 @@ export const Route = createFileRoute("/admin-login")({
   }),
   component: AdminLogin,
 });
+
+
 
 function AdminLogin() {
   const nav = useNavigate();
@@ -44,79 +45,27 @@ function AdminLogin() {
     return () => subscription.unsubscribe();
   }, [nav]);
 
+
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const cleanEmail = email.trim().toLowerCase();
-    const ADMIN_EMAIL = "aknandysh26@gmail.com";
-
-    if (cleanEmail !== ADMIN_EMAIL) {
-      toast.error(`Access restricted. ${cleanEmail} is not authorized for system admin access.`);
-      setLoading(false);
-      return;
-    }
-
     try {
-      // Step 1: Auto-provision admin user on the server (bypasses email confirmation requirement)
-      try {
-        await provisionAdminServerFn({ data: { email: cleanEmail, password } });
-      } catch (provErr) {
-        console.warn("Server admin provision notice:", provErr);
-      }
-
-      // Step 2: Sign in with password
-      let { data, error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
-
-      // Step 3: Fallback signup if account not created yet
-      if (error) {
-        const signUpRes = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-        });
-        if (signUpRes.data?.user) {
-          const retryRes = await supabase.auth.signInWithPassword({
-            email: cleanEmail,
-            password,
-          });
-          if (retryRes.data?.user) {
-            data = retryRes.data;
-            error = null;
-          }
-        }
-      }
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data?.user) {
-        throw new Error("Invalid email or password.");
-      }
-
-      // Step 4: Verify Admin Role
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) throw error;
       const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
         _user_id: data.user.id,
         _role: "admin",
       });
-
-      if (roleErr) {
-        console.warn("has_role check warning:", roleErr);
-      }
-
+      if (roleErr) throw roleErr;
       if (!isAdmin) {
         await supabase.auth.signOut();
-        throw new Error("This account does not have admin privileges in Supabase.");
+        throw new Error("This account does not have admin access");
       }
-
       toast.success("Welcome, admin");
       nav({ to: "/admin" });
     } catch (err: any) {
-      console.error("Admin sign-in error:", err);
-      const msg = getCleanErrorMessage(err);
-      toast.error(msg);
+      toast.error(err.message ?? "Sign in failed");
     } finally {
       setLoading(false);
     }
@@ -138,13 +87,14 @@ function AdminLogin() {
         <h1 className="text-2xl font-bold">Admin sign in</h1>
         <p className="mt-1 text-sm text-muted-foreground">Restricted access. Admin accounts only.</p>
 
+
+
         <form onSubmit={submit} className="mt-6 space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</span>
             <input
               type="email"
               required
-              placeholder="aknandysh26@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
@@ -194,59 +144,4 @@ function AdminLogin() {
       </div>
     </div>
   );
-}
-
-function getCleanErrorMessage(err: unknown): string {
-  if (!err) return "Sign in failed. Please check your credentials.";
-
-  let raw: string | undefined;
-
-  if (typeof err === "string") {
-    raw = err;
-  } else if (err instanceof Error && err.message) {
-    raw = err.message;
-  } else if (typeof err === "object" && err !== null) {
-    const e = err as Record<string, any>;
-    raw =
-      typeof e.message === "string"
-        ? e.message
-        : typeof e.error_description === "string"
-        ? e.error_description
-        : typeof e.error === "string"
-        ? e.error
-        : undefined;
-  }
-
-  if (raw) {
-    const trimmed = raw.trim();
-    if (
-      trimmed === "{}" ||
-      trimmed === "[]" ||
-      trimmed === "[object Object]" ||
-      trimmed === "null" ||
-      trimmed === "undefined"
-    ) {
-      return "Invalid email or password. Please verify credentials or run Supabase SQL script.";
-    }
-
-    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed?.message && typeof parsed.message === "string" && parsed.message.trim() !== "{}") {
-          return parsed.message;
-        }
-        if (parsed?.error_description && typeof parsed.error_description === "string") {
-          return parsed.error_description;
-        }
-        if (parsed?.msg && typeof parsed.msg === "string") {
-          return parsed.msg;
-        }
-      } catch {}
-      return "Invalid email or password. Please verify credentials or run Supabase SQL script.";
-    }
-
-    return trimmed;
-  }
-
-  return "Invalid admin email or password.";
 }
