@@ -326,8 +326,18 @@ function AuthPage() {
         }
       }
 
+      if (typeof window !== "undefined") {
+        localStorage.setItem("stockerz_otp_user", cleanEmail);
+      }
+
+      await qc.invalidateQueries({ queryKey: ["shop"] });
       toast.success("Welcome back!");
-      nav({ to: "/dashboard" });
+
+      if (typeof window !== "undefined") {
+        window.location.href = "/dashboard";
+      } else {
+        nav({ to: "/dashboard", replace: true });
+      }
     } catch (err: any) {
       toast.error(err.message ?? "Invalid email or password");
     } finally {
