@@ -61,8 +61,8 @@ export function Th({ children, className = "" }: React.PropsWithChildren<{ class
   return <th className={`border-b border-glass-border px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground ${className}`}>{children}</th>;
 }
 
-export function Td({ children, className = "" }: React.PropsWithChildren<{ className?: string }>) {
-  return <td className={`border-b border-glass-border/60 px-4 py-3 uppercase-data ${className}`}>{children}</td>;
+export function Td({ children, className = "", ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
+  return <td {...props} className={`border-b border-glass-border/60 px-4 py-3 uppercase-data ${className}`}>{children}</td>;
 }
 
 export function Empty({ text }: { text: string }) {
