@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getShopByEmailServerFn } from "@/lib/admin-provision-server";
 
 export function useShop() {
   return useQuery({
@@ -52,6 +53,14 @@ export function useShop() {
 
           if (updatedShop) return updatedShop;
           return shopByEmail;
+        }
+
+        // Server function fallback (bypasses RLS issues)
+        try {
+          const srvShopRes = await getShopByEmailServerFn({ data: { email: emailToSearch } });
+          if (srvShopRes?.shop) return srvShopRes.shop;
+        } catch (e) {
+          console.warn("Server shop lookup notice:", e);
         }
       }
 

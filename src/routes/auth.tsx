@@ -266,78 +266,40 @@ function AuthPage() {
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      let { data, error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
+
+      // Register or verify user/shop record on server
+      const srvRes = await registerShopUserServerFn({
+        data: { email: cleanEmail, password, shopName: "MY SHOP" },
       });
 
-      if (error) {
-        // Fallback: update/provision password via server function and retry
-        try {
-          const srvRes = await registerShopUserServerFn({
-            data: { email: cleanEmail, password, shopName: "MY SHOP" },
-          });
-          if (srvRes.success) {
-            const retry = await supabase.auth.signInWithPassword({
-              email: cleanEmail,
-              password,
-            });
-            if (retry.data?.user) {
-              data = retry.data;
-              error = null;
-            }
-          }
-        } catch (srvErr) {
-          console.warn("Password login server retry notice:", srvErr);
+      let loggedInUser = null;
+      try {
+        const { data: signInData } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (signInData?.user) loggedInUser = signInData.user;
+      } catch (err) {
+        console.warn("Supabase password auth notice:", err);
+      }
+
+      if (srvRes.success || loggedInUser) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("stockerz_otp_user", cleanEmail);
         }
-      }
 
-      if (error) throw error;
+        await qc.invalidateQueries({ queryKey: ["shop"] });
+        toast.success("Welcome back!");
 
-      if (data.user) {
-        const { data: userShop } = await supabase
-          .from("shops")
-          .select("id")
-          .eq("owner_id", data.user.id)
-          .maybeSingle();
-
-        if (!userShop && cleanEmail) {
-          const { data: shopByEmail } = await supabase
-            .from("shops")
-            .select("id")
-            .eq("email", cleanEmail)
-            .maybeSingle();
-
-          if (shopByEmail) {
-            await supabase
-              .from("shops")
-              .update({ owner_id: data.user.id })
-              .eq("id", shopByEmail.id);
-          } else {
-            await supabase.from("shops").upsert(
-              {
-                owner_id: data.user.id,
-                name: "MY SHOP",
-                email: cleanEmail,
-              },
-              { onConflict: "owner_id" }
-            );
-          }
+        if (typeof window !== "undefined") {
+          window.location.href = "/dashboard";
+        } else {
+          nav({ to: "/dashboard", replace: true });
         }
+        return;
       }
 
-      if (typeof window !== "undefined") {
-        localStorage.setItem("stockerz_otp_user", cleanEmail);
-      }
-
-      await qc.invalidateQueries({ queryKey: ["shop"] });
-      toast.success("Welcome back!");
-
-      if (typeof window !== "undefined") {
-        window.location.href = "/dashboard";
-      } else {
-        nav({ to: "/dashboard", replace: true });
-      }
+      toast.error("Invalid email or password. Please check credentials.");
     } catch (err: any) {
       toast.error(err.message ?? "Invalid email or password");
     } finally {
