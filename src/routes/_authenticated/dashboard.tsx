@@ -301,20 +301,28 @@ function Kpi({ icon: Icon, label, value, color, badge }: { icon: any; label: str
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -3, scale: 1.01 }}
-      transition={{ duration: 0.2 }}
-      className="glass glass-hover rounded-2xl p-4 md:p-5 flex flex-col justify-between border border-glass-border shadow-lg shadow-black/5"
+      whileHover={{ y: -4, scale: 1.015 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="glass glass-hover group relative overflow-hidden rounded-2xl p-4 md:p-5 flex flex-col justify-between border border-glass-border shadow-xl shadow-black/5"
     >
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
-        <div className={`grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-r ${color} border`}>
-          <Icon className="h-4 w-4" />
+        <div className={`widget-icon-box grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-r ${color} border shadow-md`}>
+          <Icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
         </div>
       </div>
       <div className="mt-3">
-        <div className="text-2xl md:text-3xl font-black tracking-tight text-foreground">{value}</div>
-        {badge && <span className="mt-1 inline-block text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{badge}</span>}
+        <div className="text-2xl md:text-3xl font-black tracking-tight text-foreground bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+          {value}
+        </div>
+        {badge && (
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{badge}</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-ping" />
+          </div>
+        )}
       </div>
+      <div className={`mt-3 h-1 w-full rounded-full bg-gradient-to-r ${color} opacity-70 group-hover:opacity-100 transition-opacity duration-300`} />
     </motion.div>
   );
 }

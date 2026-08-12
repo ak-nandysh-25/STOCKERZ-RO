@@ -2,7 +2,7 @@ import * as React from "react";
 
 export function Card({ className = "", children, hover = false }: React.PropsWithChildren<{ className?: string; hover?: boolean }>) {
   return (
-    <div className={`glass ${hover ? "glass-hover" : ""} rounded-2xl p-5 md:p-6 shadow-xl shadow-black/5 ${className}`}>
+    <div className={`glass ${hover ? "glass-hover group" : ""} relative overflow-hidden rounded-2xl p-5 md:p-6 shadow-xl shadow-black/5 transition-all duration-300 before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-gradient-to-r before:from-transparent before:via-primary/30 before:to-transparent ${className}`}>
       {children}
     </div>
   );
@@ -29,15 +29,15 @@ export function Button({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" | "outline" | "accent" }) {
   const styles = {
     primary:
-      "bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/25 active:scale-[0.98]",
+      "bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 active:scale-[0.97]",
     accent:
-      "bg-gradient-to-r from-accent to-teal-500 text-accent-foreground hover:brightness-110 shadow-lg shadow-accent/25 active:scale-[0.98]",
+      "bg-gradient-to-r from-accent to-teal-500 text-accent-foreground hover:brightness-110 shadow-lg shadow-accent/25 hover:shadow-accent/40 hover:-translate-y-0.5 active:scale-[0.97]",
     ghost:
-      "hover:bg-foreground/10 text-foreground active:scale-[0.98]",
+      "hover:bg-foreground/10 text-foreground active:scale-[0.97]",
     outline:
-      "glass hover:bg-foreground/10 text-foreground border border-glass-border hover:border-primary/40 active:scale-[0.98]",
+      "glass hover:bg-foreground/10 text-foreground border border-glass-border hover:border-primary/40 hover:-translate-y-0.5 active:scale-[0.97]",
     danger:
-      "bg-gradient-to-r from-destructive to-rose-600 text-destructive-foreground hover:brightness-110 shadow-lg shadow-destructive/20 active:scale-[0.98]",
+      "bg-gradient-to-r from-destructive to-rose-600 text-destructive-foreground hover:brightness-110 shadow-lg shadow-destructive/20 hover:shadow-destructive/40 hover:-translate-y-0.5 active:scale-[0.97]",
   }[variant];
 
   return (
@@ -63,7 +63,7 @@ export function Badge({
   }[variant];
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-bold tracking-wide uppercase-data ${styles} ${className}`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-bold tracking-wide uppercase-data transition-transform duration-200 hover:scale-105 ${styles} ${className}`}>
       {children}
     </span>
   );
@@ -120,7 +120,7 @@ export function Th({ children, className = "" }: React.PropsWithChildren<{ class
 }
 
 export function Td({ children, className = "" }: React.PropsWithChildren<{ className?: string }>) {
-  return <td className={`border-b border-glass-border/40 px-4 py-3.5 uppercase-data text-foreground transition-colors ${className}`}>{children}</td>;
+  return <td className={`border-b border-glass-border/40 px-4 py-3.5 uppercase-data text-foreground transition-colors duration-150 hover:bg-primary/5 ${className}`}>{children}</td>;
 }
 
 export function Empty({ text }: { text: string }) {

@@ -995,12 +995,12 @@ function Stat({
   color?: string;
 }) {
   return (
-    <div className="glass rounded-2xl p-4 flex items-center justify-between">
+    <div className="glass glass-hover group relative overflow-hidden rounded-2xl p-4 md:p-5 flex items-center justify-between border border-glass-border shadow-lg transition-all duration-300">
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className="mt-1.5 text-xl font-black">{value}</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="mt-1.5 text-xl md:text-2xl font-black text-foreground">{value}</div>
       </div>
-      <div className={`grid h-10 w-10 place-items-center rounded-xl bg-white/5 ${color}`}>
+      <div className={`widget-icon-box grid h-10 w-10 place-items-center rounded-xl bg-white/10 dark:bg-white/5 border border-glass-border ${color} shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}>
         <Icon className="h-5 w-5" />
       </div>
     </div>
