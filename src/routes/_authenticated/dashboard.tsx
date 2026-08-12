@@ -192,7 +192,7 @@ function Dashboard() {
           icon={Wrench}
           label="Reminders Due"
           value={String(stats?.reminders.length ?? 0)}
-          color="from-emerald-500/20 to-teal-500/20 text-emerald-500 dark:text-emerald-400 border-emerald-500/30"
+          color="from-sky-500/20 to-cyan-500/20 text-cyan-500 dark:text-cyan-400 border-cyan-500/30"
           badge="30-Day Window"
         />
       </div>
@@ -212,7 +212,7 @@ function Dashboard() {
           <div className="hidden sm:flex items-center gap-4 text-xs font-semibold">
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#0ea5e9]" /> Showroom</span>
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#06b6d4]" /> Office</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#10b981]" /> Service</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#38bdf8]" /> Service</span>
           </div>
         </div>
 
@@ -225,7 +225,7 @@ function Dashboard() {
               <Tooltip content={<CustomTooltip />} cursor={{ fill: "currentColor", opacity: 0.05 }} />
               <Bar dataKey="sales" name="Sales ₹" stackId="a" fill="#0ea5e9" radius={[0, 0, 0, 0]} />
               <Bar dataKey="office" name="Office ₹" stackId="a" fill="#06b6d4" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="service" name="Service ₹" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="service" name="Service ₹" stackId="a" fill="#38bdf8" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -256,7 +256,7 @@ function Dashboard() {
                       href={waLink(s.phone, `Hello ${upper(s.customer_name)}, your RO filter change is due on ${fmtDate(s.next_service_date)}. Please book a service.`)}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 px-3 py-1.5 text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/25 transition cursor-pointer"
                     >
                       <MessageCircle className="h-4 w-4" /> WhatsApp
                     </a>

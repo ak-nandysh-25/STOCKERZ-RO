@@ -55,7 +55,7 @@ export function Badge({
 }: React.PropsWithChildren<{ variant?: "primary" | "success" | "warning" | "destructive" | "accent" | "muted"; className?: string }>) {
   const styles = {
     primary: "bg-primary/15 text-primary border-primary/30",
-    success: "bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border-emerald-500/30",
+    success: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
     warning: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
     destructive: "bg-destructive/15 text-destructive border-destructive/30",
     accent: "bg-accent/15 text-accent border-accent/30",

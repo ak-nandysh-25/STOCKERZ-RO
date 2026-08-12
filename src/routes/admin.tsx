@@ -448,7 +448,7 @@ function AdminControlCenter() {
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Total Shops" value={String(systemTotals.shopsCount)} icon={Store} color="text-primary" />
-        <Stat label="Global Sales Revenue" value={fmtMoney(systemTotals.totalSalesRevenue)} icon={ShoppingCart} color="text-emerald-400" />
+        <Stat label="Global Sales Revenue" value={fmtMoney(systemTotals.totalSalesRevenue)} icon={ShoppingCart} color="text-cyan-600 dark:text-cyan-400" />
         <Stat label="Global Service Revenue" value={fmtMoney(systemTotals.totalServiceRevenue)} icon={Wrench} color="text-amber-400" />
         <Stat label="Total Product SKUs" value={String(systemTotals.totalProductsCount)} icon={Package} color="text-cyan-600 dark:text-cyan-400" />
       </div>
