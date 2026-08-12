@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getAppRedirectUrl } from "@/lib/app-utils";
+import { WaterBackground } from "@/components/water-background";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
 
@@ -203,7 +204,8 @@ function AuthPage() {
   }
 
   return (
-    <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10">
+    <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10 relative overflow-hidden">
+      <WaterBackground />
       <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
         <div className="mb-6 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">

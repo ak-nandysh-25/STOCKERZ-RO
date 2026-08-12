@@ -29,6 +29,7 @@ import {
   Check
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { WaterBackground } from "@/components/water-background";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -158,7 +159,8 @@ function Landing() {
   });
 
   return (
-    <div className="aurora-bg min-h-screen text-foreground selection:bg-primary selection:text-primary-foreground">
+    <div className="aurora-bg min-h-screen text-foreground selection:bg-primary selection:text-primary-foreground relative overflow-hidden">
+      <WaterBackground />
       {/* Header / Navbar */}
       <header className="sticky top-0 z-50 border-b border-white/5 bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
