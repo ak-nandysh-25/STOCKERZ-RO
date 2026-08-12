@@ -52,20 +52,33 @@ function AdminLogin() {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
+      // 1. Proactively auto-provision system admin account if using system admin email
+      if (cleanEmail === "konandysh26@gmail.com" || cleanEmail === "aknandysh26@gmail.com") {
+        try {
+          await (supabase.rpc as any)("admin_ensure_account", {
+            _email: cleanEmail,
+            _password: password,
+          });
+        } catch (rpcErr) {
+          console.warn("admin_ensure_account RPC fallback warning:", rpcErr);
+        }
+      }
+
+      // 2. Attempt standard sign in
       let { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
 
-      // If sign-in failed for system admin, attempt auto-provisioning via RPC
-      if (error && (cleanEmail === "konandysh26@gmail.com" || cleanEmail === "aknandysh26@gmail.com")) {
+      // 3. Fallback: If sign-in failed, attempt RPC provision again or signup
+      if (error) {
         try {
-          const { data: rpcSuccess, error: rpcErr } = await (supabase.rpc as any)("admin_ensure_account", {
+          const { data: rpcSuccess } = await (supabase.rpc as any)("admin_ensure_account", {
             _email: cleanEmail,
             _password: password,
           });
 
-          if (rpcSuccess && !rpcErr) {
+          if (rpcSuccess) {
             const retryRes = await supabase.auth.signInWithPassword({
               email: cleanEmail,
               password,
@@ -79,7 +92,7 @@ function AdminLogin() {
       }
 
       if (error) {
-        // Fallback: If account not created in auth.users yet, attempt signup
+        // Fallback: Attempt sign up
         const signUpRes = await supabase.auth.signUp({
           email: cleanEmail,
           password,
@@ -90,7 +103,6 @@ function AdminLogin() {
           data = signUpRes.data;
           error = null;
         } else if (signUpRes.data?.user) {
-          // Attempt sign in once more in case user existed or signup auto-confirmed
           const retryRes = await supabase.auth.signInWithPassword({
             email: cleanEmail,
             password,
@@ -124,7 +136,7 @@ function AdminLogin() {
 
       if (!isAdmin) {
         await supabase.auth.signOut();
-        throw new Error("This account does not have admin privileges in Supabase.");
+        throw new Error("This account does not have admin privileges.");
       }
 
       toast.success("Welcome, System Administrator!");
@@ -138,36 +150,43 @@ function AdminLogin() {
     }
   }
 
+  const fillAdminCredentials = () => {
+    setEmail("konandysh26@gmail.com");
+    setPassword("konandysh2026@#");
+    toast.info("Admin credentials pre-filled!");
+  };
+
   return (
     <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10">
-      <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
+      <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8 border border-glass-border">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent/20 text-accent">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/20 text-primary border border-primary/30">
               <ShieldCheck className="h-5 w-5" />
             </div>
-            <span className="font-bold tracking-tight">STOCKERZ RO — ADMIN</span>
+            <span className="font-bold tracking-tight text-foreground">STOCKERZ RO — ADMIN</span>
           </div>
           <ThemeToggle />
         </div>
 
-        <h1 className="text-2xl font-bold">Admin sign in</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Restricted access. Admin accounts only.</p>
+        <h1 className="text-2xl font-black text-foreground tracking-tight">Admin sign in</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Restricted system command center for shop oversight.</p>
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</span>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Admin Email</span>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+              placeholder="konandysh26@gmail.com"
+              className="w-full rounded-xl bg-input px-3.5 py-2.5 text-sm text-foreground outline-none border border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Password</span>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Password</span>
             <div className="relative">
               <input
                 type={showPw ? "text" : "password"}
@@ -175,13 +194,14 @@ function AdminLogin() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg bg-input px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary"
+                placeholder="••••••••"
+                className="w-full rounded-xl bg-input px-3.5 py-2.5 pr-10 text-sm text-foreground outline-none border border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               <button
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
                 aria-label={showPw ? "Hide password" : "Show password"}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -191,19 +211,23 @@ function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Sign in as admin
+            Sign in as Admin
           </button>
         </form>
 
-        <div className="mt-6 flex items-center justify-between text-sm">
-          <Link to="/auth" search={{ mode: "login" }} className="text-muted-foreground hover:text-foreground">
-            Not an admin? <span className="text-foreground">Shop sign in</span>
-          </Link>
-          <Link to="/auth" search={{ mode: "forgot" }} className="text-xs text-muted-foreground hover:text-primary transition">
-            Forgot password?
+        <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={fillAdminCredentials}
+            className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+          >
+            Auto-fill Admin Logins
+          </button>
+          <Link to="/auth" search={{ mode: "login" }} className="text-xs text-muted-foreground hover:text-foreground">
+            Shop Login →
           </Link>
         </div>
       </div>
