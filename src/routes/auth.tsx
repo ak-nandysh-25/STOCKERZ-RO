@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getAppRedirectUrl } from "@/lib/app-utils";
-import { WaterFlowBackground } from "@/components/water-flow-background";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
 
@@ -204,9 +203,8 @@ function AuthPage() {
   }
 
   return (
-    <div className="relative grid min-h-screen place-items-center px-4 py-10 overflow-hidden">
-      <WaterFlowBackground />
-      <div className="glass relative z-10 w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
+    <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10">
+      <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
         <div className="mb-6 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <img src="/stockerz-logo.png" alt="STOCKERZ RO" className="h-9 w-9 rounded-lg object-contain" />

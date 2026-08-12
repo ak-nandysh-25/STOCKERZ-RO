@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { WaterFlowBackground } from "@/components/water-flow-background";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{ title: "Reset password — STOCKERZ RO" }] }),
@@ -47,9 +46,8 @@ function ResetPage() {
   }
 
   return (
-    <div className="relative grid min-h-screen place-items-center px-4 overflow-hidden">
-      <WaterFlowBackground />
-      <div className="glass relative z-10 w-full max-w-md rounded-2xl p-8">
+    <div className="aurora-bg grid min-h-screen place-items-center px-4">
+      <div className="glass w-full max-w-md rounded-2xl p-8">
         <h1 className="text-2xl font-bold">Set new password</h1>
         <p className="mt-1 text-sm text-muted-foreground">Enter a new password for your account.</p>
         {!ready && <p className="mt-6 text-sm text-warning">Waiting for recovery session…</p>}

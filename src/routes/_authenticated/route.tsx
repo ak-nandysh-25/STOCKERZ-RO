@@ -33,7 +33,6 @@ import { useState } from "react";
 import { upper } from "@/lib/app-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { toast } from "sonner";
-import { WaterFlowBackground } from "@/components/water-flow-background";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -182,8 +181,7 @@ function Shell() {
   const shopTitle = shop?.name ? upper(shop.name) : "MY SHOP";
 
   return (
-    <div className="relative h-screen overflow-hidden flex flex-col lg:flex-row">
-      <WaterFlowBackground />
+    <div className="aurora-bg h-screen overflow-hidden flex flex-col lg:flex-row">
       {/* Mobile top bar */}
       <div className="flex items-center justify-between border-b border-glass-border bg-background/60 px-4 py-3 backdrop-blur lg:hidden shrink-0">
         <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
