@@ -1,47 +1,47 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { KeyRound, Loader2, Mail, ShieldCheck, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, KeyRound, Loader2, Mail, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getAppRedirectUrl } from "@/lib/app-utils";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
     meta: [
-      { title: "Admin OTP Sign in — STOCKERZ RO" },
-      { name: "description", content: "Passwordless OTP access for STOCKERZ RO System Administrator." },
-      { property: "og:title", content: "Admin OTP Sign in — STOCKERZ RO" },
-      { property: "og:description", content: "Passwordless OTP access for STOCKERZ RO System Administrator." },
+      { title: "Admin Sign In & OTP Verification — STOCKERZ RO" },
+      { name: "description", content: "Administrator access portal with secure email OTP verification." },
+      { property: "og:title", content: "Admin Sign In & OTP Verification — STOCKERZ RO" },
+      { property: "og:description", content: "Administrator access portal with secure email OTP verification." },
       { property: "og:type", content: "website" },
     ],
   }),
-  component: AdminOtpLogin,
+  component: AdminLogin,
 });
 
-function AdminOtpLogin() {
+function AdminLogin() {
   const nav = useNavigate();
-  const [email, setEmail] = useState("");
-  const [otpToken, setOtpToken] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  const [email, setEmail] = useState("konandysh26@gmail.com");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"email" | "otp">("email");
+  const [loginMethod, setLoginMethod] = useState<"otp" | "password">("otp");
   const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (timer > 0) {
+      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
 
   useEffect(() => {
     const checkAdmin = async (userId: string) => {
-      let isAdmin = false;
-      try {
-        const { data: roleRes } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-        isAdmin = !!roleRes;
-      } catch (_) {}
-
-      const { data: userData } = await supabase.auth.getUser();
-      const userEmail = userData.user?.email?.toLowerCase();
-      if (!isAdmin && (userEmail === "konandysh26@gmail.com" || userEmail === "aknandysh26@gmail.com")) {
-        isAdmin = true;
-      }
-
-      if (isAdmin) {
-        nav({ to: "/admin" });
-      }
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      if (isAdmin) nav({ to: "/admin" });
     };
 
     supabase.auth.getSession().then(({ data }) => {
@@ -55,11 +55,13 @@ function AdminOtpLogin() {
     return () => subscription.unsubscribe();
   }, [nav]);
 
+  // Step 1: Send OTP to Admin Email
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
+
     if (!cleanEmail) {
-      toast.error("Please enter your admin email address.");
+      toast.error("Please enter a valid admin email address.");
       return;
     }
 
@@ -69,60 +71,47 @@ function AdminOtpLogin() {
         email: cleanEmail,
         options: {
           shouldCreateUser: true,
+          emailRedirectTo: getAppRedirectUrl("/admin"),
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setOtpSent(true);
-      toast.success(`OTP code sent to ${cleanEmail}! Please check your email inbox.`);
+      setStep("otp");
+      setTimer(60);
+      toast.success(`Verification code sent to ${cleanEmail}! Check your inbox.`);
     } catch (err: any) {
-      console.error("OTP send error:", err);
-      toast.error(err.message || "Failed to send OTP. Please try again.");
+      console.error("Send OTP error:", err);
+      toast.error(getCleanErrorMessage(err));
     } finally {
       setLoading(false);
     }
   }
 
+  // Step 2: Verify Email OTP and Redirect to Admin
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
-    const cleanOtp = otpToken.trim();
+    const cleanOtp = otp.trim();
 
-    if (!cleanOtp) {
-      toast.error("Please enter the OTP verification code.");
+    if (!cleanOtp || cleanOtp.length < 6) {
+      toast.error("Please enter the complete 6-digit OTP code.");
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Verify OTP with Supabase Auth
-      let { data, error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         email: cleanEmail,
         token: cleanOtp,
         type: "email",
       });
 
-      if (error) {
-        // Retry with type signup/magiclink if email type didn't match
-        const retryRes = await supabase.auth.verifyOtp({
-          email: cleanEmail,
-          token: cleanOtp,
-          type: "magiclink",
-        });
-        if (retryRes.data?.session) {
-          data = retryRes.data;
-          error = null;
-        }
-      }
-
       if (error || !data?.user) {
         throw error || new Error("Invalid or expired OTP code.");
       }
 
-      // 2. Verify Admin Rights
+      // Admin privilege validation check
       let isAdmin = false;
       try {
         const { data: roleRes } = await supabase.rpc("has_role", {
@@ -138,14 +127,66 @@ function AdminOtpLogin() {
 
       if (!isAdmin) {
         await supabase.auth.signOut();
-        throw new Error("This account does not have system administrator privileges.");
+        throw new Error("This account does not have administrator permissions.");
       }
 
-      toast.success("OTP Verified! Redirecting to Admin Panel...");
+      toast.success("OTP Verified! Redirecting to Admin Command Center...");
       nav({ to: "/admin" });
     } catch (err: any) {
-      console.error("OTP verification error:", err);
-      toast.error(err.message || "Invalid or expired OTP code.");
+      console.error("Verify OTP error:", err);
+      toast.error(getCleanErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Backup Password Login
+  async function handlePasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+      if (cleanEmail === "konandysh26@gmail.com" || cleanEmail === "aknandysh26@gmail.com") {
+        try {
+          await (supabase.rpc as any)("admin_ensure_account", {
+            _email: cleanEmail,
+            _password: password,
+          });
+        } catch (_) {}
+      }
+
+      let { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (error || !data?.user) {
+        throw error || new Error("Invalid email or password.");
+      }
+
+      let isAdmin = false;
+      try {
+        const { data: roleRes } = await supabase.rpc("has_role", {
+          _user_id: data.user.id,
+          _role: "admin",
+        });
+        isAdmin = !!roleRes;
+      } catch (_) {}
+
+      if (!isAdmin && (cleanEmail === "konandysh26@gmail.com" || cleanEmail === "aknandysh26@gmail.com")) {
+        isAdmin = true;
+      }
+
+      if (!isAdmin) {
+        await supabase.auth.signOut();
+        throw new Error("This account does not have admin privileges.");
+      }
+
+      toast.success("Welcome, System Administrator!");
+      nav({ to: "/admin" });
+    } catch (err: any) {
+      toast.error(getCleanErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -153,125 +194,222 @@ function AdminOtpLogin() {
 
   return (
     <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10">
-      <div className="glass w-full max-w-md rounded-3xl p-6 shadow-2xl sm:p-8 border border-glass-border">
+      <div className="glass w-full max-w-md rounded-3xl p-6 shadow-2xl sm:p-8 border border-glass-border relative overflow-hidden">
         <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/20 text-primary border border-primary/30 shadow-md">
+          <div className="flex items-center gap-2.5">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-r from-primary/20 to-accent/20 text-primary border border-primary/30 shadow-md">
               <ShieldCheck className="h-5 w-5" />
             </div>
-            <span className="font-bold tracking-tight text-foreground">STOCKERZ RO — ADMIN</span>
+            <div>
+              <span className="font-extrabold tracking-tight text-foreground block text-sm">STOCKERZ RO</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Admin Portal</span>
+            </div>
           </div>
           <ThemeToggle />
         </div>
 
-        <h1 className="text-2xl font-black text-foreground tracking-tight">Admin OTP Login</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Passwordless security. Enter your admin email to receive a 6-digit OTP code.
-        </p>
+        {/* Header Title */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-black text-foreground tracking-tight">
+            {step === "otp" ? "Enter Verification OTP" : "Admin Security Access"}
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {step === "otp"
+              ? `Enter the 6-digit OTP code sent to ${email}`
+              : "Verifying administrator credentials via Email OTP Code."}
+          </p>
+        </div>
 
-        {!otpSent ? (
-          /* Step 1: Enter Email & Request OTP */
-          <form onSubmit={handleSendOtp} className="mt-6 space-y-4">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Admin Email Address
-              </span>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="konandysh26@gmail.com"
-                  className="w-full rounded-xl bg-input px-3.5 py-3 pr-10 text-sm text-foreground outline-none border border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* LOGIN FORM SWITCH: OTP vs PASSWORD */}
+        {loginMethod === "otp" ? (
+          step === "email" ? (
+            /* STEP 1: Enter Email & Send OTP */
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Admin Email Address
+                </span>
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="konandysh26@gmail.com"
+                    className="w-full rounded-xl bg-input px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none border border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                  <Mail className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary via-primary to-accent py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 active:scale-[0.97] transition-all disabled:opacity-60 cursor-pointer"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                Send OTP Verification Code
+              </button>
+            </form>
+          ) : (
+            /* STEP 2: Enter & Verify 6-digit OTP */
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  6-Digit OTP Verification Code
+                </span>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    pattern="[0-9]*"
+                    autoFocus
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    placeholder="123456"
+                    className="w-full rounded-xl bg-input px-3.5 py-3 text-center text-2xl font-mono font-bold tracking-[0.5em] text-foreground outline-none border border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                  <KeyRound className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loading || otp.length < 6}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary via-primary to-accent py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 active:scale-[0.97] transition-all disabled:opacity-60 cursor-pointer"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                Verify OTP & Enter Admin Panel
+              </button>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <button
+                  type="button"
+                  onClick={() => setStep("email")}
+                  className="text-muted-foreground hover:text-foreground transition"
+                >
+                  ← Change Email
+                </button>
+                <button
+                  type="button"
+                  disabled={timer > 0 || loading}
+                  onClick={handleSendOtp}
+                  className="inline-flex items-center gap-1 font-semibold text-primary hover:underline disabled:opacity-50 cursor-pointer"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  {timer > 0 ? `Resend code in ${timer}s` : "Resend OTP Code"}
+                </button>
               </div>
-            </label>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Sending OTP...
-                </>
-              ) : (
-                <>
-                  <KeyRound className="h-4 w-4" /> Send OTP Code
-                </>
-              )}
-            </button>
-          </form>
+            </form>
+          )
         ) : (
-          /* Step 2: Enter OTP Token & Verify */
-          <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
-            <div className="rounded-xl bg-primary/10 border border-primary/20 p-3.5 flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-              <div className="text-xs text-foreground font-medium">
-                OTP sent to <span className="font-bold">{email}</span>
-              </div>
-            </div>
-
+          /* PASSWORD BACKUP LOGIN METHOD */
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                6-Digit OTP Code
-              </span>
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Admin Email</span>
               <input
-                type="text"
+                type="email"
                 required
-                maxLength={6}
-                value={otpToken}
-                onChange={(e) => setOtpToken(e.target.value.replace(/\D/g, ""))}
-                placeholder="123456"
-                className="w-full text-center tracking-[0.4em] font-mono text-xl font-bold rounded-xl bg-input px-3.5 py-3 text-foreground outline-none border border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="konandysh26@gmail.com"
+                className="w-full rounded-xl bg-input px-3.5 py-2.5 text-sm text-foreground outline-none border border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </label>
 
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Password</span>
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-xl bg-input px-3.5 py-2.5 pr-10 text-sm text-foreground outline-none border border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </label>
+
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition hover:brightness-110 disabled:opacity-60 cursor-pointer"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Verifying OTP...
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="h-4 w-4" /> Verify & Access Admin
-                </>
-              )}
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Sign in with Password
             </button>
-
-            <div className="flex items-center justify-between text-xs pt-2">
-              <button
-                type="button"
-                onClick={() => setOtpSent(false)}
-                className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition cursor-pointer"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" /> Change Email
-              </button>
-              <button
-                type="button"
-                onClick={handleSendOtp}
-                disabled={loading}
-                className="text-primary font-semibold hover:underline cursor-pointer"
-              >
-                Resend OTP
-              </button>
-            </div>
           </form>
         )}
 
-        <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-end">
-          <Link to="/auth" search={{ mode: "login" }} className="text-xs text-muted-foreground hover:text-foreground">
-            Shop Sign in →
+        {/* Footer Mode Toggles */}
+        <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between text-xs">
+          {loginMethod === "otp" ? (
+            <button
+              type="button"
+              onClick={() => setLoginMethod("password")}
+              className="font-semibold text-primary hover:underline cursor-pointer"
+            >
+              Use Password Login →
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setLoginMethod("otp");
+                setStep("email");
+              }}
+              className="font-semibold text-primary hover:underline cursor-pointer"
+            >
+              ← Use Email OTP Verification
+            </button>
+          )}
+
+          <Link to="/auth" search={{ mode: "login" }} className="text-muted-foreground hover:text-foreground transition">
+            Shop Login
           </Link>
         </div>
       </div>
     </div>
   );
+}
+
+function getCleanErrorMessage(err: unknown): string {
+  if (!err) return "Verification failed. Please check your OTP code.";
+  let raw: string | undefined;
+  if (typeof err === "string") {
+    raw = err;
+  } else if (err instanceof Error && err.message) {
+    raw = err.message;
+  } else if (typeof err === "object" && err !== null) {
+    const e = err as Record<string, any>;
+    if (typeof e.message === "string" && e.message) {
+      raw = e.message;
+    } else if (typeof e.error_description === "string" && e.error_description) {
+      raw = e.error_description;
+    } else if (typeof e.error === "string" && e.error) {
+      raw = e.error;
+    }
+  }
+
+  if (raw && typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (trimmed.toLowerCase().includes("invalid token") || trimmed.toLowerCase().includes("token expired")) {
+      return "Invalid or expired OTP verification code. Please request a new code.";
+    }
+    if (trimmed && trimmed !== "{}" && trimmed !== "[]" && trimmed !== "[object Object]") {
+      return trimmed;
+    }
+  }
+
+  return "OTP verification failed. Please try again.";
 }
