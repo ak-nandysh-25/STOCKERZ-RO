@@ -92,3 +92,17 @@ export function numberToWords(num: number | string | null | undefined): string {
   const result = inWords(n).trim();
   return `Rupees ${result} Only`;
 }
+
+export function getAppRedirectUrl(path: string = ""): string {
+  const prodUrl = "https://stockerzro.vercel.app";
+  let origin = prodUrl;
+  if (typeof window !== "undefined" && window.location?.origin) {
+    const loc = window.location.origin;
+    if (!loc.includes("localhost") && !loc.includes("127.0.0.1")) {
+      origin = loc;
+    }
+  }
+  const cleanPath = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+  return `${origin}${cleanPath}`;
+}
+

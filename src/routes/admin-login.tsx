@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getAppRedirectUrl } from "@/lib/app-utils";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
@@ -61,6 +62,7 @@ function AdminLogin() {
         const signUpRes = await supabase.auth.signUp({
           email: cleanEmail,
           password,
+          options: { emailRedirectTo: getAppRedirectUrl("/admin") },
         });
 
         if (signUpRes.data?.user && signUpRes.data.session) {

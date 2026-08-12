@@ -6,6 +6,7 @@ import { ArrowLeft, Droplet, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getAppRedirectUrl } from "@/lib/app-utils";
 
 const searchSchema = z.object({ mode: z.enum(["login", "signup", "forgot"]).optional() });
 
@@ -74,7 +75,7 @@ function AuthPage() {
     try {
       if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: getAppRedirectUrl("/reset-password"),
         });
         if (error) throw error;
         setResetSent(true);
@@ -109,7 +110,7 @@ function AuthPage() {
         const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+          options: { emailRedirectTo: getAppRedirectUrl("/dashboard") },
         });
         if (signUpErr) throw signUpErr;
 
