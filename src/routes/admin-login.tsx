@@ -5,7 +5,6 @@ import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getAppRedirectUrl } from "@/lib/app-utils";
-import { WaterFlowBackground } from "@/components/water-flow-background";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
@@ -58,6 +57,27 @@ function AdminLogin() {
         password,
       });
 
+      // If sign-in failed for system admin, attempt auto-provisioning via RPC
+      if (error && (cleanEmail === "konandysh26@gmail.com" || cleanEmail === "aknandysh26@gmail.com")) {
+        try {
+          const { data: rpcSuccess, error: rpcErr } = await (supabase.rpc as any)("admin_ensure_account", {
+            _email: cleanEmail,
+            _password: password,
+          });
+
+          if (rpcSuccess && !rpcErr) {
+            const retryRes = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password,
+            });
+            if (retryRes.data?.user) {
+              data = retryRes.data;
+              error = null;
+            }
+          }
+        } catch (_) {}
+      }
+
       if (error) {
         // Fallback: If account not created in auth.users yet, attempt signup
         const signUpRes = await supabase.auth.signUp({
@@ -98,7 +118,7 @@ function AdminLogin() {
         isAdmin = !!roleRes;
       } catch (_) {}
 
-      if (!isAdmin && cleanEmail === "konandysh26@gmail.com") {
+      if (!isAdmin && (cleanEmail === "konandysh26@gmail.com" || cleanEmail === "aknandysh26@gmail.com")) {
         isAdmin = true;
       }
 
@@ -119,9 +139,8 @@ function AdminLogin() {
   }
 
   return (
-    <div className="relative grid min-h-screen place-items-center px-4 py-10 overflow-hidden">
-      <WaterFlowBackground />
-      <div className="glass relative z-10 w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
+    <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10">
+      <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent/20 text-accent">
@@ -214,6 +233,9 @@ function getCleanErrorMessage(err: unknown): string {
 
   if (raw && typeof raw === "string") {
     const trimmed = raw.trim();
+    if (trimmed.toLowerCase().includes("invalid login credentials")) {
+      return "Invalid email or password. Please check your admin credentials.";
+    }
     if (trimmed && trimmed !== "{}" && trimmed !== "[]" && trimmed !== "[object Object]" && trimmed !== "null") {
       try {
         const parsed = JSON.parse(trimmed);
