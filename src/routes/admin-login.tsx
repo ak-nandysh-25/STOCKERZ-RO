@@ -212,28 +212,7 @@ function AdminLogin() {
           </button>
         </form>
 
-        <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={async () => {
-              const target = email.trim() || "konandysh26@gmail.com";
-              setLoading(true);
-              try {
-                const { error } = await supabase.auth.resetPasswordForEmail(target, {
-                  redirectTo: getAppRedirectUrl("/admin"),
-                });
-                if (error) throw error;
-                toast.success(`Direct login link sent to ${target}! Please check your email.`);
-              } catch (e: any) {
-                toast.error(e.message || "Failed to send reset link.");
-              } finally {
-                setLoading(false);
-              }
-            }}
-            className="text-xs font-semibold text-accent hover:underline cursor-pointer"
-          >
-            Send Login Link to Email
-          </button>
+        <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-end">
           <Link to="/auth" search={{ mode: "login" }} className="text-xs text-muted-foreground hover:text-foreground">
             Shop Sign in →
           </Link>
