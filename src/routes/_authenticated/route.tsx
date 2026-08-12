@@ -256,24 +256,24 @@ function Shell() {
                     to={n.to}
                     onClick={() => setOpen(false)}
                     title={collapsed ? n.label : undefined}
-                    className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-sm transition-all duration-150 ease-in-out cursor-pointer ${
-                      collapsed ? "justify-center px-0" : "px-3"
+                    className={`group relative flex items-center gap-3.5 rounded-xl py-2.5 text-sm transition-all duration-200 ease-in-out cursor-pointer ${
+                      collapsed ? "justify-center px-0" : "px-3.5"
                     } ${
                       active
-                        ? "bg-primary/15 text-primary font-semibold shadow-[0_0_12px_rgba(59,130,246,0.2)] border-l-2 border-primary"
-                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                        ? "bg-gradient-to-r from-primary/20 via-primary/10 to-transparent text-primary font-bold border-l-3 border-primary shadow-sm"
+                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                     }`}
                   >
                     <n.icon
-                      className={`h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-110 ${
+                      className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
                         active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                       }`}
                     />
-                    {!collapsed && <span className="truncate">{n.label}</span>}
+                    {!collapsed && <span className="truncate tracking-wide">{n.label}</span>}
 
                     {/* Floating Tooltip when Collapsed */}
                     {collapsed && (
-                      <span className="hidden lg:block absolute left-full ml-3 px-2.5 py-1 bg-popover border border-glass-border text-popover-foreground text-xs font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 pointer-events-none z-50 whitespace-nowrap">
+                      <span className="hidden lg:block absolute left-full ml-3 px-3 py-1.5 bg-popover/95 border border-glass-border text-popover-foreground text-xs font-semibold rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50 whitespace-nowrap backdrop-blur-md">
                         {n.label}
                       </span>
                     )}

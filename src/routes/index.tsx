@@ -191,14 +191,14 @@ function Landing() {
             <Link
               to="/auth"
               search={{ mode: "login" }}
-              className="rounded-xl glass px-4 py-2 text-sm font-medium text-foreground transition hover:bg-white/10 hover:border-white/20"
+              className="rounded-xl glass glass-hover px-4.5 py-2 text-sm font-semibold text-foreground transition"
             >
               Sign In
             </Link>
             <Link
               to="/auth"
               search={{ mode: "signup" }}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-5 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition hover:brightness-110 active:scale-95"
             >
               Get Started <ArrowRight className="h-4 w-4" />
             </Link>
@@ -208,20 +208,20 @@ function Landing() {
 
       {/* Hero Section */}
       <section className="relative mx-auto max-w-6xl px-6 pt-20 pb-20 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary backdrop-blur-md mb-8">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary backdrop-blur-md mb-8 shadow-sm">
           <Sparkles className="h-3.5 w-3.5" />
-          <span>Purpose-Built SaaS for Water Purifier Showrooms & Technicians</span>
+          <span>Purpose-Built OS for RO Purifier Showrooms & Field Engineers</span>
         </div>
 
         <h1 className="mx-auto max-w-4xl text-5xl font-black leading-tight tracking-tight md:text-7xl">
           Supercharge your RO business with{" "}
-          <span className="bg-gradient-to-r from-aurora-2 via-primary to-aurora-3 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-primary via-accent to-purple-400 bg-clip-text text-transparent">
             automated filter reminders
           </span>{" "}
           & smart sales.
         </h1>
 
-        <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground leading-relaxed md:text-xl">
+        <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground leading-relaxed md:text-xl font-medium">
           Everything your RO shop needs: stock inventory auto-deduction, 3-month filter service scheduling, custom monthly EMI plans, technician assignment, and 1-click GST invoices.
         </p>
 
@@ -229,13 +229,13 @@ function Landing() {
           <Link
             to="/auth"
             search={{ mode: "signup" }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-primary/30 transition hover:scale-[1.02] hover:brightness-110 active:scale-95"
+            className="inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-primary via-primary to-accent px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-primary/30 transition hover:scale-[1.02] hover:brightness-110 active:scale-95 cursor-pointer"
           >
             Launch Your Shop Free <ArrowRight className="h-5 w-5" />
           </Link>
           <a
             href="#features"
-            className="inline-flex items-center gap-2 rounded-2xl glass px-7 py-4 text-base font-semibold text-foreground transition hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-2xl glass glass-hover px-7 py-4 text-base font-bold text-foreground transition cursor-pointer"
           >
             Explore All Features
           </a>

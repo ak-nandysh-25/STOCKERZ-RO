@@ -1,47 +1,105 @@
 import * as React from "react";
 
-export function Card({ className = "", children }: React.PropsWithChildren<{ className?: string }>) {
-  return <div className={`glass rounded-2xl p-5 ${className}`}>{children}</div>;
+export function Card({ className = "", children, hover = false }: React.PropsWithChildren<{ className?: string; hover?: boolean }>) {
+  return (
+    <div className={`glass ${hover ? "glass-hover" : ""} rounded-2xl p-5 md:p-6 shadow-xl shadow-black/5 ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: React.ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl text-foreground">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        <h1 className="text-2xl font-black tracking-tight md:text-3xl text-foreground bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text">
+          {title}
+        </h1>
+        {description && <p className="mt-1 text-sm font-medium text-muted-foreground">{description}</p>}
       </div>
-      {actions && <div className="flex gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
     </div>
   );
 }
 
-export function Button({ variant = "primary", className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" | "outline" }) {
+export function Button({
+  variant = "primary",
+  className = "",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" | "outline" | "accent" }) {
   const styles = {
-    primary: "bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/25 active:scale-[0.98] transition-all",
-    ghost: "hover:bg-foreground/10 text-foreground",
-    outline: "glass hover:bg-foreground/10 text-foreground border border-glass-border",
-    danger: "bg-destructive text-destructive-foreground hover:brightness-110",
+    primary:
+      "bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/25 active:scale-[0.98]",
+    accent:
+      "bg-gradient-to-r from-accent to-purple-600 text-accent-foreground hover:brightness-110 shadow-lg shadow-accent/25 active:scale-[0.98]",
+    ghost:
+      "hover:bg-foreground/10 text-foreground active:scale-[0.98]",
+    outline:
+      "glass hover:bg-foreground/10 text-foreground border border-glass-border hover:border-primary/40 active:scale-[0.98]",
+    danger:
+      "bg-gradient-to-r from-destructive to-rose-600 text-destructive-foreground hover:brightness-110 shadow-lg shadow-destructive/20 active:scale-[0.98]",
   }[variant];
-  return <button {...props} className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${styles} ${className}`} />;
+
+  return (
+    <button
+      {...props}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold tracking-wide transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none ${styles} ${className}`}
+    />
+  );
+}
+
+export function Badge({
+  children,
+  variant = "primary",
+  className = "",
+}: React.PropsWithChildren<{ variant?: "primary" | "success" | "warning" | "destructive" | "accent" | "muted"; className?: string }>) {
+  const styles = {
+    primary: "bg-primary/15 text-primary border-primary/30",
+    success: "bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border-emerald-500/30",
+    warning: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    destructive: "bg-destructive/15 text-destructive border-destructive/30",
+    accent: "bg-accent/15 text-accent border-accent/30",
+    muted: "bg-muted/40 text-muted-foreground border-border/40",
+  }[variant];
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-bold tracking-wide uppercase-data ${styles} ${className}`}>
+      {children}
+    </span>
+  );
 }
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary border border-border/50 ${props.className ?? ""}`} />;
+  return (
+    <input
+      {...props}
+      className={`w-full rounded-xl bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none border border-border/60 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${props.className ?? ""}`}
+    />
+  );
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={`w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary border border-border/50 ${props.className ?? ""}`} />;
+  return (
+    <select
+      {...props}
+      className={`w-full rounded-xl bg-input px-3.5 py-2.5 text-sm text-foreground outline-none border border-border/60 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer ${props.className ?? ""}`}
+    />
+  );
 }
 
 export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={`w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary border border-border/50 ${props.className ?? ""}`} />;
+  return (
+    <textarea
+      {...props}
+      className={`w-full rounded-xl bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none border border-border/60 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${props.className ?? ""}`}
+    />
+  );
 }
 
 export function Field({ label, children }: React.PropsWithChildren<{ label: string }>) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+    <label className="block space-y-1.5">
+      <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
       {children}
     </label>
   );
@@ -49,7 +107,7 @@ export function Field({ label, children }: React.PropsWithChildren<{ label: stri
 
 export function Table({ children }: React.PropsWithChildren) {
   return (
-    <div className="glass overflow-hidden rounded-2xl">
+    <div className="glass overflow-hidden rounded-2xl shadow-xl shadow-black/5">
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-foreground">{children}</table>
       </div>
@@ -58,25 +116,37 @@ export function Table({ children }: React.PropsWithChildren) {
 }
 
 export function Th({ children, className = "" }: React.PropsWithChildren<{ className?: string }>) {
-  return <th className={`border-b border-glass-border px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground ${className}`}>{children}</th>;
+  return <th className={`border-b border-glass-border bg-muted/20 px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground ${className}`}>{children}</th>;
 }
 
 export function Td({ children, className = "" }: React.PropsWithChildren<{ className?: string }>) {
-  return <td className={`border-b border-glass-border/60 px-4 py-3 uppercase-data text-foreground ${className}`}>{children}</td>;
+  return <td className={`border-b border-glass-border/40 px-4 py-3.5 uppercase-data text-foreground transition-colors ${className}`}>{children}</td>;
 }
 
 export function Empty({ text }: { text: string }) {
-  return <div className="py-16 text-center text-sm text-muted-foreground">{text}</div>;
+  return (
+    <div className="py-16 text-center text-sm font-medium text-muted-foreground">
+      <p>{text}</p>
+    </div>
+  );
 }
 
 export function Modal({ open, onClose, title, children }: React.PropsWithChildren<{ open: boolean; onClose: () => void; title: string }>) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-xs p-4" onClick={onClose}>
-      <div className="glass w-full max-w-lg rounded-2xl p-6 text-foreground shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/65 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={onClose}>
+      <div
+        className="glass w-full max-w-lg rounded-3xl p-6 text-foreground shadow-2xl border border-glass-border animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex items-center justify-between border-b border-glass-border/50 pb-3">
+          <h2 className="text-lg font-bold text-foreground tracking-tight">{title}</h2>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-xl glass text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
         {children}
       </div>
