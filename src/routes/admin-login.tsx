@@ -150,12 +150,6 @@ function AdminLogin() {
     }
   }
 
-  const fillAdminCredentials = () => {
-    setEmail("konandysh26@gmail.com");
-    setPassword("konandysh2026@#");
-    toast.info("Admin credentials pre-filled!");
-  };
-
   return (
     <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10">
       <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8 border border-glass-border">
@@ -221,13 +215,27 @@ function AdminLogin() {
         <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={fillAdminCredentials}
-            className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+            onClick={async () => {
+              const target = email.trim() || "konandysh26@gmail.com";
+              setLoading(true);
+              try {
+                const { error } = await supabase.auth.resetPasswordForEmail(target, {
+                  redirectTo: getAppRedirectUrl("/admin"),
+                });
+                if (error) throw error;
+                toast.success(`Direct login link sent to ${target}! Please check your email.`);
+              } catch (e: any) {
+                toast.error(e.message || "Failed to send reset link.");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            className="text-xs font-semibold text-accent hover:underline cursor-pointer"
           >
-            Auto-fill Admin Logins
+            Send Login Link to Email
           </button>
           <Link to="/auth" search={{ mode: "login" }} className="text-xs text-muted-foreground hover:text-foreground">
-            Shop Login →
+            Shop Sign in →
           </Link>
         </div>
       </div>
