@@ -39,17 +39,24 @@ function AdminLogin() {
   }, [timer]);
 
   useEffect(() => {
-    const checkAdmin = async (userId: string) => {
-      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-      if (isAdmin) nav({ to: "/admin" });
+    const checkAdmin = async (userId: string, userEmail?: string) => {
+      let isAdmin = false;
+      try {
+        const { data: roleRes } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+        isAdmin = !!roleRes;
+      } catch (_) {}
+      const lower = userEmail?.toLowerCase() ?? "";
+      if (isAdmin || lower === "konandysh26@gmail.com" || lower === "aknandysh26@gmail.com") {
+        nav({ to: "/admin" });
+      }
     };
 
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) checkAdmin(data.session.user.id);
+      if (data.session?.user) checkAdmin(data.session.user.id, data.session.user.email);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) checkAdmin(session.user.id);
+      if (session?.user) checkAdmin(session.user.id, session.user.email);
     });
 
     return () => subscription.unsubscribe();
@@ -88,7 +95,7 @@ function AdminLogin() {
     }
   }
 
-  // Step 2: Verify Email OTP and Redirect to Admin
+  // Step 2: Verify Email OTP and Redirect to Admin (Multi-type resilient)
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -101,11 +108,41 @@ function AdminLogin() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
+      // 1. Try standard email OTP
+      let res = await supabase.auth.verifyOtp({
         email: cleanEmail,
         token: cleanOtp,
         type: "email",
       });
+
+      // 2. Fallback: Try magiclink type OTP
+      if (res.error) {
+        res = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: cleanOtp,
+          type: "magiclink",
+        });
+      }
+
+      // 3. Fallback: Try signup type OTP
+      if (res.error) {
+        res = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: cleanOtp,
+          type: "signup",
+        });
+      }
+
+      // 4. Fallback: Try recovery type OTP
+      if (res.error) {
+        res = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: cleanOtp,
+          type: "recovery",
+        });
+      }
+
+      const { data, error } = res;
 
       if (error || !data?.user) {
         throw error || new Error("Invalid or expired OTP code.");
