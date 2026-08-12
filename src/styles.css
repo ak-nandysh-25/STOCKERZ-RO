@@ -153,9 +153,79 @@
     height: 0px;
     background: transparent;
   }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); }
-  body { min-height: 100vh; }
+  html, body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  body {
+    min-height: 100vh;
+  }
+  input, select, textarea, button {
+    color: inherit;
+  }
+  select option {
+    background-color: var(--color-card);
+    color: var(--color-card-foreground);
+  }
 }
+
+/* Light mode high-contrast text & background utility overrides */
+.light .bg-white\/5 {
+  background-color: oklch(0 0 0 / 4%);
+}
+.light .bg-white\/10 {
+  background-color: oklch(0 0 0 / 7%);
+}
+.light .bg-white\/20 {
+  background-color: oklch(0 0 0 / 12%);
+}
+.light .border-white\/5 {
+  border-color: oklch(0 0 0 / 8%);
+}
+.light .border-white\/10 {
+  border-color: oklch(0 0 0 / 12%);
+}
+.light .border-white\/20 {
+  border-color: oklch(0 0 0 / 18%);
+}
+.light .text-white {
+  color: var(--color-foreground);
+}
+.light .text-slate-200,
+.light .text-slate-300 {
+  color: var(--color-muted-foreground);
+}
+.light .text-slate-400 {
+  color: var(--color-muted-foreground);
+}
+.light .text-emerald-400 {
+  color: oklch(0.48 0.18 155);
+}
+.light .text-emerald-300 {
+  color: oklch(0.42 0.18 155);
+}
+.light .text-amber-400 {
+  color: oklch(0.50 0.18 75);
+}
+.light .text-amber-300 {
+  color: oklch(0.45 0.18 75);
+}
+.light .text-amber-200 {
+  color: oklch(0.40 0.18 75);
+}
+.light .text-blue-300,
+.light .text-blue-400 {
+  color: oklch(0.48 0.18 240);
+}
+.light .text-purple-400 {
+  color: oklch(0.48 0.20 300);
+}
+.light [class*="bg-[#0e1017]"] {
+  background-color: var(--color-card);
+}
+
 
 @utility glass {
   background: var(--glass);
@@ -181,3 +251,4 @@
 
 /* UPPERCASE data helper */
 .uppercase-data { text-transform: uppercase; }
+
