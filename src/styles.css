@@ -48,97 +48,89 @@
   --radius: 0.75rem;
   color-scheme: light;
   /* Light Premium Water Flow Palette */
-  --background: #F8FDFF;
-  --foreground: #0B2545;
-  --card: rgba(255, 255, 255, 0.85);
-  --card-foreground: #0B2545;
-  --popover: #FFFFFF;
-  --popover-foreground: #0B2545;
-  --primary: #087CC1;
-  --primary-foreground: #FFFFFF;
-  --secondary: #E8F8FC;
-  --secondary-foreground: #087CC1;
-  --muted: #E8F8FC;
-  --muted-foreground: #4A6B82;
-  --accent: #58D7EA;
-  --accent-foreground: #0B2545;
-  --destructive: #E53E3E;
-  --destructive-foreground: #FFFFFF;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --border: rgba(88, 215, 234, 0.25);
-  --input: rgba(232, 248, 252, 0.85);
-  --ring: #35BFE0;
-  --glass: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(88, 215, 234, 0.22);
-  --aurora-1: #F8FDFF;
-  --aurora-2: #E8F8FC;
-  --aurora-3: #C9EEF8;
-  --chart-1: #087CC1;
-  --chart-2: #35BFE0;
-  --chart-3: #58D7EA;
-  --chart-4: #F59E0B;
-  --chart-5: #E53E3E;
-}
-
-.dark {
-  color-scheme: light;
-  --background: #F8FDFF;
-  --foreground: #0B2545;
-  --card: rgba(255, 255, 255, 0.9);
-  --card-foreground: #0B2545;
-  --popover: #FFFFFF;
-  --popover-foreground: #0B2545;
-  --primary: #087CC1;
-  --primary-foreground: #FFFFFF;
-  --secondary: #E8F8FC;
-  --secondary-foreground: #087CC1;
-  --muted: #E8F8FC;
-  --muted-foreground: #4A6B82;
-  --accent: #58D7EA;
-  --accent-foreground: #0B2545;
-  --destructive: #E53E3E;
-  --destructive-foreground: #FFFFFF;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --border: rgba(88, 215, 234, 0.25);
-  --input: rgba(232, 248, 252, 0.85);
-  --ring: #35BFE0;
-  --glass: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(88, 215, 234, 0.22);
-  --aurora-1: #F8FDFF;
-  --aurora-2: #E8F8FC;
-  --aurora-3: #C9EEF8;
+  --background: oklch(0.97 0.02 215); /* #E8F8FC Ice Blue */
+  --foreground: oklch(0.20 0.06 240); /* #0F2C4A Deep Navy Text */
+  --card: oklch(1 0 0 / 82%);
+  --card-foreground: oklch(0.20 0.06 240);
+  --popover: oklch(1 0 0 / 92%);
+  --popover-foreground: oklch(0.20 0.06 240);
+  --primary: oklch(0.52 0.18 235); /* #087CC1 Royal Blue */
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.94 0.04 210); /* #C9EEF8 Light Ocean Blue */
+  --secondary-foreground: oklch(0.22 0.06 240);
+  --muted: oklch(0.94 0.03 210);
+  --muted-foreground: oklch(0.42 0.06 230);
+  --accent: oklch(0.78 0.15 205); /* #58D7EA Aqua */
+  --accent-foreground: oklch(0.15 0.06 240);
+  --destructive: oklch(0.58 0.24 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.62 0.17 160);
+  --warning: oklch(0.72 0.17 75);
+  --border: rgba(53, 191, 224, 0.22);
+  --input: rgba(255, 255, 255, 0.85);
+  --ring: oklch(0.52 0.18 235);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(88, 215, 234, 0.28);
+  --aurora-1: oklch(0.95 0.04 210); /* Ice Blue */
+  --aurora-2: oklch(0.88 0.08 205); /* Aqua */
+  --aurora-3: oklch(0.82 0.10 220); /* Sky Blue */
+  --chart-1: oklch(0.52 0.18 235);
+  --chart-2: oklch(0.78 0.15 205);
+  --chart-3: oklch(0.62 0.17 160);
+  --chart-4: oklch(0.72 0.17 75);
+  --chart-5: oklch(0.58 0.24 25);
 }
 
 .light {
   color-scheme: light;
-  --background: #F8FDFF;
-  --foreground: #0B2545;
-  --card: rgba(255, 255, 255, 0.9);
-  --card-foreground: #0B2545;
-  --popover: #FFFFFF;
-  --popover-foreground: #0B2545;
-  --primary: #087CC1;
-  --primary-foreground: #FFFFFF;
-  --secondary: #E8F8FC;
-  --secondary-foreground: #087CC1;
-  --muted: #E8F8FC;
-  --muted-foreground: #4A6B82;
-  --accent: #58D7EA;
-  --accent-foreground: #0B2545;
-  --destructive: #E53E3E;
-  --destructive-foreground: #FFFFFF;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --border: rgba(88, 215, 234, 0.25);
-  --input: rgba(232, 248, 252, 0.85);
-  --ring: #35BFE0;
-  --glass: rgba(255, 255, 255, 0.75);
+  --background: oklch(0.97 0.02 215);
+  --foreground: oklch(0.20 0.06 240);
+  --card: oklch(1 0 0 / 85%);
+  --card-foreground: oklch(0.20 0.06 240);
+  --popover: oklch(1 0 0 / 95%);
+  --popover-foreground: oklch(0.20 0.06 240);
+  --primary: oklch(0.52 0.18 235);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.94 0.04 210);
+  --secondary-foreground: oklch(0.22 0.06 240);
+  --muted: oklch(0.94 0.03 210);
+  --muted-foreground: oklch(0.42 0.06 230);
+  --accent: oklch(0.78 0.15 205);
+  --accent-foreground: oklch(0.15 0.06 240);
+  --border: rgba(53, 191, 224, 0.22);
+  --input: rgba(255, 255, 255, 0.85);
+  --ring: oklch(0.52 0.18 235);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(88, 215, 234, 0.28);
+  --aurora-1: oklch(0.95 0.04 210);
+  --aurora-2: oklch(0.88 0.08 205);
+  --aurora-3: oklch(0.82 0.10 220);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.16 0.04 240);
+  --foreground: oklch(0.96 0.02 210);
+  --card: oklch(0.20 0.04 240 / 85%);
+  --card-foreground: oklch(0.96 0.02 210);
+  --popover: oklch(0.20 0.04 240 / 95%);
+  --popover-foreground: oklch(0.96 0.02 210);
+  --primary: oklch(0.68 0.18 220);
+  --primary-foreground: oklch(0.10 0.05 240);
+  --secondary: oklch(0.28 0.05 240);
+  --secondary-foreground: oklch(0.96 0.02 210);
+  --muted: oklch(0.26 0.04 240);
+  --muted-foreground: oklch(0.70 0.04 220);
+  --accent: oklch(0.75 0.15 205);
+  --accent-foreground: oklch(0.10 0.05 240);
+  --border: rgba(88, 215, 234, 0.20);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: oklch(0.68 0.18 220);
+  --glass: rgba(15, 44, 74, 0.65);
   --glass-border: rgba(88, 215, 234, 0.22);
-  --aurora-1: #F8FDFF;
-  --aurora-2: #E8F8FC;
-  --aurora-3: #C9EEF8;
+  --aurora-1: oklch(0.35 0.08 220);
+  --aurora-2: oklch(0.40 0.10 205);
+  --aurora-3: oklch(0.30 0.08 230);
 }
 
 @layer base {
@@ -154,109 +146,112 @@
     background: transparent;
   }
   html, body {
-    background-color: var(--color-background);
+    background-color: #E8F8FC;
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
-  body {
-    min-height: 100vh;
-  }
+  body { min-height: 100vh; }
 }
 
 @utility glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(16px) saturate(130%);
-  border: 1px solid rgba(88, 215, 234, 0.22);
+  background: var(--glass);
+  backdrop-filter: blur(18px) saturate(145%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(88, 215, 234, 0.08);
 }
 
 @utility aurora-bg {
   background:
-    radial-gradient(60% 60% at 20% 10%, #E8F8FC, transparent 70%),
-    radial-gradient(50% 50% at 90% 20%, #C9EEF8, transparent 70%),
-    radial-gradient(60% 60% at 60% 100%, rgba(88, 215, 234, 0.18), transparent 70%),
-    linear-gradient(180deg, #F8FDFF 0%, #E8F8FC 50%, rgba(201, 238, 248, 0.5) 100%);
+    radial-gradient(65% 65% at 15% 15%, rgba(88, 215, 234, 0.25), transparent 60%),
+    radial-gradient(55% 55% at 85% 25%, rgba(201, 238, 248, 0.6), transparent 60%),
+    radial-gradient(60% 60% at 50% 90%, rgba(53, 191, 224, 0.18), transparent 60%),
+    linear-gradient(135deg, #E8F8FC 0%, #C9EEF8 45%, #E4F6FC 75%, #F4FCFE 100%);
 }
 
-/* Water Flow Animations */
-@keyframes wave-flow-slow {
-  0% { transform: translateX(0); }
-  50% { transform: translateX(-25%); }
-  100% { transform: translateX(0); }
+/* LIGHT PREMIUM WATER FLOW KEYFRAME ANIMATIONS */
+@keyframes waterWaveFlow1 {
+  0% { transform: translateX(0) translateZ(0) scaleY(1); }
+  50% { transform: translateX(-20%) translateZ(0) scaleY(1.06); }
+  100% { transform: translateX(-40%) translateZ(0) scaleY(1); }
 }
 
-@keyframes wave-flow-medium {
-  0% { transform: translateX(-15%); }
-  50% { transform: translateX(0); }
-  100% { transform: translateX(-15%); }
+@keyframes waterWaveFlow2 {
+  0% { transform: translateX(0) translateZ(0) scaleY(1); }
+  50% { transform: translateX(20%) translateZ(0) scaleY(0.94); }
+  100% { transform: translateX(40%) translateZ(0) scaleY(1); }
 }
 
-@keyframes wave-flow-fast {
-  0% { transform: translateX(0); }
-  50% { transform: translateX(-35%); }
-  100% { transform: translateX(0); }
+@keyframes waterBubbleFloat {
+  0% {
+    transform: translateY(100%) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.65;
+  }
+  80% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateY(-25vh) scale(1.15);
+    opacity: 0;
+  }
 }
 
-@keyframes droplet-float-1 {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.7; }
-  50% { transform: translateY(-18px) scale(1.1); opacity: 0.9; }
+@keyframes waterShimmerSweep {
+  0% {
+    transform: translateX(-100%) rotate(12deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.35;
+  }
+  75% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateX(200%) rotate(12deg);
+    opacity: 0;
+  }
 }
 
-@keyframes droplet-float-2 {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
-  50% { transform: translateY(-24px) scale(0.9); opacity: 0.85; }
+@keyframes productGlowPulse {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.05);
+  }
 }
 
-@keyframes droplet-float-3 {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.75; }
-  50% { transform: translateY(-14px) scale(1.15); opacity: 0.95; }
+.animate-wave-1 {
+  animation: waterWaveFlow1 24s ease-in-out infinite;
 }
 
-@keyframes reflection-sweep {
-  0% { transform: translateX(-100%) skewX(-12deg); }
-  100% { transform: translateX(200%) skewX(-12deg); }
+.animate-wave-2 {
+  animation: waterWaveFlow2 32s ease-in-out infinite;
 }
 
-.animate-wave-slow {
-  animation: wave-flow-slow 28s ease-in-out infinite;
+.animate-wave-3 {
+  animation: waterWaveFlow1 20s ease-in-out infinite reverse;
 }
 
-.animate-wave-medium {
-  animation: wave-flow-medium 22s ease-in-out infinite;
+.animate-water-shimmer {
+  animation: waterShimmerSweep 14s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.animate-wave-fast {
-  animation: wave-flow-fast 16s ease-in-out infinite;
-}
-
-.animate-droplet-float-1 {
-  animation: droplet-float-1 7s ease-in-out infinite;
-}
-
-.animate-droplet-float-2 {
-  animation: droplet-float-2 9s ease-in-out infinite;
-}
-
-.animate-droplet-float-3 {
-  animation: droplet-float-3 6s ease-in-out infinite;
-}
-
-.animate-reflection-sweep {
-  animation: reflection-sweep 14s ease-in-out infinite;
-}
-
-.animate-pulse-slow {
-  animation: pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.animate-product-glow {
+  animation: productGlowPulse 8s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-wave-slow,
-  .animate-wave-medium,
-  .animate-wave-fast,
-  .animate-droplet-float-1,
-  .animate-droplet-float-2,
-  .animate-droplet-float-3,
-  .animate-reflection-sweep,
-  .animate-pulse-slow {
+  .animate-wave-1,
+  .animate-wave-2,
+  .animate-wave-3,
+  .animate-water-shimmer,
+  .animate-product-glow {
     animation: none !important;
   }
 }

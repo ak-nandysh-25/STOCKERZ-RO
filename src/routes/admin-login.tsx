@@ -5,7 +5,7 @@ import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getAppRedirectUrl } from "@/lib/app-utils";
-import { WaterBackground } from "@/components/water-background";
+import { WaterFlowBackground } from "@/components/water-flow-background";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
@@ -119,9 +119,9 @@ function AdminLogin() {
   }
 
   return (
-    <div className="aurora-bg grid min-h-screen place-items-center px-4 py-10 relative overflow-hidden">
-      <WaterBackground />
-      <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
+    <div className="relative grid min-h-screen place-items-center px-4 py-10 overflow-hidden">
+      <WaterFlowBackground />
+      <div className="glass relative z-10 w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-accent/20 text-accent">

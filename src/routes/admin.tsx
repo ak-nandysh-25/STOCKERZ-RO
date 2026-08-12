@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button, Card, Empty, Field, Input, Modal, PageHeader, Table, Td, Th, Select } from "@/components/ui-kit";
 import { fmtMoney, upper, fmtDate } from "@/lib/app-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { WaterFlowBackground } from "@/components/water-flow-background";
 import {
   AlertTriangle,
   Edit,
@@ -413,7 +414,8 @@ function AdminControlCenter() {
   }, [data]);
 
   return (
-    <div className="aurora-bg min-h-screen p-4 lg:p-8 text-foreground">
+    <div className="relative min-h-screen p-4 lg:p-8 text-foreground overflow-x-hidden">
+      <WaterFlowBackground />
       {/* Top Navigation Header */}
       <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl glass p-4">
         <div className="flex min-w-0 items-center gap-3">
