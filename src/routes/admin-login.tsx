@@ -45,8 +45,6 @@ function AdminLogin() {
     return () => subscription.unsubscribe();
   }, [nav]);
 
-
-
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -65,7 +63,11 @@ function AdminLogin() {
           password,
         });
 
-        if (signUpRes.data?.user) {
+        if (signUpRes.data?.user && signUpRes.data.session) {
+          data = signUpRes.data;
+          error = null;
+        } else if (signUpRes.data?.user) {
+          // Attempt sign in once more in case user existed or signup auto-confirmed
           const retryRes = await supabase.auth.signInWithPassword({
             email: cleanEmail,
             password,
@@ -73,6 +75,8 @@ function AdminLogin() {
           if (retryRes.data?.user) {
             data = retryRes.data;
             error = null;
+          } else if (retryRes.error) {
+            error = retryRes.error;
           }
         }
       }
@@ -126,8 +130,6 @@ function AdminLogin() {
 
         <h1 className="text-2xl font-bold">Admin sign in</h1>
         <p className="mt-1 text-sm text-muted-foreground">Restricted access. Admin accounts only.</p>
-
-
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           <label className="block">
@@ -189,15 +191,26 @@ function AdminLogin() {
 function getCleanErrorMessage(err: unknown): string {
   if (!err) return "Sign in failed. Please check credentials.";
   let raw: string | undefined;
-  if (typeof err === "string") raw = err;
-  else if (err instanceof Error && err.message) raw = err.message;
-  else if (typeof err === "object" && err !== null) {
+  if (typeof err === "string") {
+    raw = err;
+  } else if (err instanceof Error && err.message) {
+    raw = err.message;
+  } else if (typeof err === "object" && err !== null) {
     const e = err as Record<string, any>;
-    raw = e.message || e.error_description || e.error;
+    if (typeof e.message === "string" && e.message) {
+      raw = e.message;
+    } else if (typeof e.error_description === "string" && e.error_description) {
+      raw = e.error_description;
+    } else if (typeof e.error === "string" && e.error) {
+      raw = e.error;
+    } else if (e.error && typeof e.error === "object" && typeof e.error.message === "string") {
+      raw = e.error.message;
+    }
   }
-  if (raw) {
+
+  if (raw && typeof raw === "string") {
     const trimmed = raw.trim();
-    if (trimmed !== "{}" && trimmed !== "[]" && trimmed !== "[object Object]" && trimmed !== "null") {
+    if (trimmed && trimmed !== "{}" && trimmed !== "[]" && trimmed !== "[object Object]" && trimmed !== "null") {
       try {
         const parsed = JSON.parse(trimmed);
         if (parsed?.message && typeof parsed.message === "string" && parsed.message.trim() !== "{}") {
@@ -207,5 +220,7 @@ function getCleanErrorMessage(err: unknown): string {
       return trimmed;
     }
   }
+
   return "Invalid email or password. Please run the Supabase admin creation SQL script in SQL Editor.";
 }
+
