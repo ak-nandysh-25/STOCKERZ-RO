@@ -31,7 +31,7 @@ export function Button({
     primary:
       "bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/25 active:scale-[0.98]",
     accent:
-      "bg-gradient-to-r from-accent to-purple-600 text-accent-foreground hover:brightness-110 shadow-lg shadow-accent/25 active:scale-[0.98]",
+      "bg-gradient-to-r from-accent to-teal-500 text-accent-foreground hover:brightness-110 shadow-lg shadow-accent/25 active:scale-[0.98]",
     ghost:
       "hover:bg-foreground/10 text-foreground active:scale-[0.98]",
     outline:

@@ -215,7 +215,7 @@ function Landing() {
 
         <h1 className="mx-auto max-w-4xl text-5xl font-black leading-tight tracking-tight md:text-7xl">
           Supercharge your RO business with{" "}
-          <span className="bg-gradient-to-r from-primary via-accent to-purple-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
             automated filter reminders
           </span>{" "}
           & smart sales.
