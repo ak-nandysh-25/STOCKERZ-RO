@@ -1,7 +1,7 @@
 const API_BASE_URL =
   (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) ||
   (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
-  "http://localhost:5000";
+  "https://stockerz-ro.onrender.com";
 
 const TOKEN_KEY = "stockerz_auth_token";
 

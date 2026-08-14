@@ -189,12 +189,6 @@ function Landing() {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <Link
-              to="/admin-login"
-              className="rounded-xl glass glass-hover px-3.5 py-2 text-xs font-semibold text-accent transition"
-            >
-              Admin Portal
-            </Link>
-            <Link
               to="/auth"
               search={{ mode: "login" }}
               className="rounded-xl glass glass-hover px-4.5 py-2 text-sm font-semibold text-foreground transition"
