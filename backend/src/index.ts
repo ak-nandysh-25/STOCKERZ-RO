@@ -684,7 +684,7 @@ app.delete("/api/emi/:id", authenticateToken, async (req: AuthRequest, res: Resp
 });
 
 // ==========================================
-// ADMIN ROUTES
+// ADMIN ROUTES & USER/SHOP MANAGEMENT
 // ==========================================
 
 app.get("/api/admin/users", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
@@ -701,7 +701,24 @@ app.get("/api/admin/users", authenticateToken, requireAdmin, async (req: AuthReq
     });
     return res.json(users);
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: formatApiError(err) });
+  }
+});
+
+app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    if (id === req.user!.id) {
+      return res.status(400).json({ error: "Cannot delete your active admin account." });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    await prisma.user.delete({ where: { id } });
+    return res.json({ success: true, message: `User ${user.email} and associated data deleted.` });
+  } catch (err: any) {
+    return res.status(500).json({ error: formatApiError(err) });
   }
 });
 
@@ -724,7 +741,55 @@ app.get("/api/admin/shops", authenticateToken, requireAdmin, async (req: AuthReq
     });
     return res.json(shops);
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: formatApiError(err) });
+  }
+});
+
+app.delete("/api/admin/shops/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const shop = await prisma.shop.findUnique({ where: { id } });
+    if (!shop) return res.status(404).json({ error: "Shop not found" });
+
+    const ownerId = shop.ownerId;
+    await prisma.shop.delete({ where: { id } });
+
+    if (ownerId) {
+      const owner = await prisma.user.findUnique({ where: { id: ownerId } });
+      if (owner && owner.role !== "ADMIN") {
+        await prisma.user.delete({ where: { id: ownerId } }).catch(() => {});
+      }
+    }
+
+    return res.json({ success: true, message: `Shop ${shop.name} deleted.` });
+  } catch (err: any) {
+    return res.status(500).json({ error: formatApiError(err) });
+  }
+});
+
+app.post("/api/admin/purge-non-admins", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const callerId = req.user!.id;
+    const nonAdmins = await prisma.user.findMany({
+      where: {
+        role: "USER",
+        NOT: { id: callerId },
+      },
+      select: { id: true },
+    });
+
+    const ids = nonAdmins.map((u) => u.id);
+    if (ids.length === 0) {
+      return res.json({ message: "No non-admin user accounts found to purge." });
+    }
+
+    await prisma.user.deleteMany({
+      where: { id: { in: ids } },
+    });
+
+    return res.json({ success: true, count: ids.length, message: `Purged ${ids.length} non-admin users and their shop data.` });
+  } catch (err: any) {
+    return res.status(500).json({ error: formatApiError(err) });
   }
 });
 

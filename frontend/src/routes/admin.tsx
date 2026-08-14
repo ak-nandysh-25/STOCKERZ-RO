@@ -286,7 +286,9 @@ function AdminControlCenter() {
       const shopId = deletingShop.id;
       const shopName = deletingShop.name;
 
-      toast.success(`Shop "${shopName}" deleted`);
+      await apiClient.admin.deleteShop(shopId);
+
+      toast.success(`Shop "${shopName}" deleted from database`);
 
       // Optimistically update React Query cache so row disappears instantly
       qc.setQueryData(["admin-master-data"], (oldData: any) => {
@@ -309,6 +311,18 @@ function AdminControlCenter() {
       toast.error(msg);
     } finally {
       setIsDeletingShop(false);
+    }
+  }
+
+  // Delete Individual User Account (Admin Action)
+  async function handleDeleteUser(userId: string, email: string) {
+    if (!confirm(`Are you sure you want to delete user account "${email}"? This will permanently wipe all associated shop data.`)) return;
+    try {
+      const res = await apiClient.admin.deleteUser(userId);
+      toast.success(res.message || `User ${email} deleted successfully`);
+      await qc.invalidateQueries({ queryKey: ["admin-master-data"] });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete user");
     }
   }
 
@@ -340,7 +354,8 @@ function AdminControlCenter() {
   async function handlePurgeNonAdminUsers() {
     setIsPurgingNonAdmin(true);
     try {
-      toast.success("Purged non-admin user account(s) and their data");
+      const res = await apiClient.admin.purgeNonAdminUsers();
+      toast.success(res.message || "Purged non-admin user account(s) and their data");
       await qc.invalidateQueries({ queryKey: ["admin-master-data"] });
       setIsPurgeModalOpen(false);
     } catch (err: unknown) {

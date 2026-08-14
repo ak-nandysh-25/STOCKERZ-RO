@@ -256,8 +256,17 @@ export const apiClient = {
     async getUsers() {
       return request<any[]>("/api/admin/users");
     },
+    async deleteUser(id: string) {
+      return request(`/api/admin/users/${id}`, { method: "DELETE" });
+    },
     async getShops() {
       return request<any[]>("/api/admin/shops");
+    },
+    async deleteShop(id: string) {
+      return request(`/api/admin/shops/${id}`, { method: "DELETE" });
+    },
+    async purgeNonAdminUsers() {
+      return request("/api/admin/purge-non-admins", { method: "POST" });
     },
   },
 };
