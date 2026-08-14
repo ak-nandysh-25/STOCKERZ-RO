@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "start": "tsx backend/src/index.ts",
     "server": "tsx backend/src/index.ts",
-    "postinstall": "prisma generate",
     "db:seed": "tsx backend/prisma/seed.ts",
-    "build": "prisma generate && prisma db push && vite build",
+    "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

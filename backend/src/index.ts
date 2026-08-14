@@ -20,22 +20,20 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(",").map((url) => url.trim())
-  : ["http://localhost:3000", "http://localhost:5173", "http://localhost:5000", "https://stockerzro.vercel.app"];
+  : ["http://localhost:3000", "http://localhost:5173", "http://localhost:5000"];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Reflect exact origin or fallback to allow all origins safely with credentials
       if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
-        callback(null, origin || true);
+        callback(null, true);
       } else {
-        callback(null, origin || true);
+        callback(null, true);
       }
     },
     credentials: true,
   })
 );
-app.options("*", cors());
 app.use(express.json({ limit: "10mb" }));
 
 // Health Check
