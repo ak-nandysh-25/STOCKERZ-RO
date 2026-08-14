@@ -18,6 +18,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -102,6 +103,19 @@ function Shell() {
     },
   });
 
+  const { data: userData } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      try {
+        return await apiClient.auth.getMe();
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  const isAdmin = userData?.user?.role === "ADMIN" || userData?.user?.email?.toLowerCase() === "konandysh26@gmail.com";
+
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
@@ -178,6 +192,35 @@ function Shell() {
 
         {/* Navigation Sections */}
         <nav className="flex-1 space-y-4 px-3 py-4 overflow-y-auto">
+          {isAdmin && (
+            <div className="space-y-1">
+              {!collapsed && (
+                <div className="px-3 text-[10px] font-bold tracking-wider text-amber-400 uppercase">
+                  ADMINISTRATION
+                </div>
+              )}
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                title={collapsed ? "Admin Command Center" : undefined}
+                className={`group relative flex items-center gap-3.5 rounded-xl py-2.5 text-sm transition-all duration-200 ease-in-out cursor-pointer ${
+                  collapsed ? "justify-center px-0" : "px-3.5"
+                } ${
+                  loc.pathname.startsWith("/admin")
+                    ? "bg-amber-500/20 text-amber-400 font-bold border-l-3 border-amber-400 shadow-sm"
+                    : "text-amber-400/80 hover:bg-amber-500/10 hover:text-amber-300"
+                }`}
+              >
+                <ShieldCheck className="h-4.5 w-4.5 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+                {!collapsed && <span className="truncate tracking-wide font-bold">Admin Command Center</span>}
+                {collapsed && (
+                  <span className="hidden lg:block absolute left-full ml-3 px-3 py-1.5 bg-popover/95 border border-glass-border text-popover-foreground text-xs font-semibold rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50 whitespace-nowrap backdrop-blur-md">
+                    Admin Command Center
+                  </span>
+                )}
+              </Link>
+            </div>
+          )}
           {NAV_SECTIONS.map((section, idx) => (
             <div key={section.title} className="space-y-1">
               {!collapsed ? (
