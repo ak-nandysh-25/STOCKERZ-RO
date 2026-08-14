@@ -85,12 +85,11 @@ function AdminLogin() {
 
     setLoading(true);
     try {
-      await apiClient.auth.verifyOtp(cleanEmail, cleanOtp);
-
-      // If user logs in or is admin
-      const { user } = await apiClient.auth.getMe().catch(() => ({ user: null }));
+      const res = await apiClient.auth.verifyOtp(cleanEmail, cleanOtp);
+      const user = res.user;
 
       if (user && user.role !== "ADMIN" && cleanEmail !== "admin@stockerzro.com") {
+        await apiClient.auth.logout();
         toast.error("This account does not have administrator permissions.");
         return;
       }

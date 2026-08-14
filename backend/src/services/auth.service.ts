@@ -162,6 +162,38 @@ export const authService = {
       data: { used: true },
     });
 
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: { shops: true },
+    });
+
+    if (user) {
+      let userShop = user.shops[0];
+      if (!userShop) {
+        userShop = await prisma.shop.create({
+          data: {
+            ownerId: user.id,
+            name: "MY SHOP",
+            email: cleanEmail,
+          },
+        });
+      }
+
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        shopId: userShop.id,
+      });
+
+      return {
+        valid: true,
+        user: { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt },
+        shop: userShop,
+        token,
+      };
+    }
+
     return { valid: true };
   },
 

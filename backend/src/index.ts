@@ -127,30 +127,11 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
     const { email, code } = req.body;
     if (!email || !code) return res.status(400).json({ error: "Email and code are required" });
 
-    const cleanEmail = email.trim().toLowerCase();
-    const otp = await prisma.otpToken.findFirst({
-      where: {
-        email: cleanEmail,
-        code: code.trim(),
-        used: false,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!otp) {
-      return res.status(400).json({ error: "Invalid or expired OTP code" });
-    }
-
-    await prisma.otpToken.update({
-      where: { id: otp.id },
-      data: { used: true },
-    });
-
-    return res.json({ valid: true, message: "OTP verified successfully" });
+    const result = await authService.verifyOtpToken(email, code);
+    return res.json(result);
   } catch (err: any) {
     console.error("Verify OTP error:", err);
-    return res.status(500).json({ error: err.message || "Failed to verify OTP" });
+    return res.status(400).json({ error: err.message || "Failed to verify OTP" });
   }
 });
 
