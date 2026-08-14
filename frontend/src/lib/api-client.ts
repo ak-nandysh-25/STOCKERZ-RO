@@ -84,10 +84,12 @@ export const apiClient = {
       });
     },
     async verifyOtp(email: string, code: string) {
-      return request<{ valid: boolean }>("/api/auth/verify-otp", {
+      const res = await request<{ valid: boolean; user?: any; shop?: any; token?: string }>("/api/auth/verify-otp", {
         method: "POST",
         body: JSON.stringify({ email, code }),
       });
+      if (res.token) setStoredToken(res.token);
+      return res;
     },
     async resetPassword(payload: { email: string; code?: string; newPassword: string }) {
       return request("/api/auth/reset-password", {
