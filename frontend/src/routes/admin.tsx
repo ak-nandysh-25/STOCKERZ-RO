@@ -35,7 +35,11 @@ export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {
     try {
       const { user } = await apiClient.auth.getMe();
-      if (!user || (user.role !== "ADMIN" && user.email?.toLowerCase() !== "admin@stockerzro.com")) {
+      const isAdminEmail =
+        user?.email?.toLowerCase() === "admin@stockerzro.com" ||
+        user?.email?.toLowerCase() === "konandysh26@gmail.com" ||
+        user?.email?.toLowerCase() === "konandysh25@gmail.com";
+      if (!user || (user.role !== "ADMIN" && !isAdminEmail)) {
         throw redirect({ to: "/admin-login" });
       }
       return { user };

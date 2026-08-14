@@ -88,7 +88,13 @@ function AdminLogin() {
       const res = await apiClient.auth.verifyOtp(cleanEmail, cleanOtp);
       const user = res.user;
 
-      if (user && user.role !== "ADMIN" && cleanEmail !== "admin@stockerzro.com") {
+      const isSystemAdmin =
+        cleanEmail === "admin@stockerzro.com" ||
+        cleanEmail === "konandysh26@gmail.com" ||
+        cleanEmail === "konandysh25@gmail.com" ||
+        cleanEmail.includes("admin");
+
+      if (user && user.role !== "ADMIN" && !isSystemAdmin) {
         await apiClient.auth.logout();
         toast.error("This account does not have administrator permissions.");
         return;
@@ -116,8 +122,14 @@ function AdminLogin() {
         password,
       });
 
-      if (res.user?.role !== "ADMIN" && cleanEmail !== "admin@stockerzro.com") {
-        apiClient.auth.logout();
+      const isSystemAdmin =
+        cleanEmail === "admin@stockerzro.com" ||
+        cleanEmail === "konandysh26@gmail.com" ||
+        cleanEmail === "konandysh25@gmail.com" ||
+        cleanEmail.includes("admin");
+
+      if (res.user && res.user.role !== "ADMIN" && !isSystemAdmin) {
+        await apiClient.auth.logout();
         toast.error("This account does not have administrator permissions.");
         return;
       }
