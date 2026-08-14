@@ -1,7 +1,17 @@
-const API_BASE_URL =
-  (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) ||
-  (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
-  "http://localhost:5000";
+const getApiBaseUrl = () => {
+  const envUrl =
+    (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) ||
+    (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL);
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    return "https://stockerz-ro.onrender.com";
+  }
+  return "http://localhost:5000";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const TOKEN_KEY = "stockerz_auth_token";
 
@@ -33,18 +43,27 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
-  const data = await response.json().catch(() => ({}));
+  try {
+    const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
+      ...options,
+      headers,
+    });
 
-  if (!response.ok) {
-    throw new Error(data.error || `API Request failed with status ${response.status}`);
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.error || `API Request failed with status ${response.status}`);
+    }
+
+    return data;
+  } catch (err: any) {
+    if (err.name === "TypeError" && err.message === "Failed to fetch") {
+      throw new Error(`Unable to connect to backend at ${API_BASE_URL}. If backend is hosted on Render, it may take 15-30s to wake up from idle. Please try again in a moment.`);
+    }
+    throw err;
   }
-
-  return data;
 }
 
 export const apiClient = {
