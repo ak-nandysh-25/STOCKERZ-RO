@@ -45,6 +45,14 @@ app.get("/api/health", (req: Request, res: Response) => {
 // AUTH & OTP ROUTES
 // ==========================================
 
+function formatApiError(err: any): string {
+  const msg = err?.message || String(err);
+  if (msg.includes("Can't reach database server") || msg.includes("P1001") || msg.includes("localhost:5432")) {
+    return "Database connection failed. Please set a valid PostgreSQL DATABASE_URL in Render Environment settings.";
+  }
+  return msg || "An unexpected error occurred";
+}
+
 app.post("/api/auth/signup", async (req: Request, res: Response) => {
   try {
     const { email, password, shop } = req.body;
@@ -56,7 +64,7 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
     return res.status(201).json(result);
   } catch (err: any) {
     console.error("Signup error:", err);
-    return res.status(400).json({ error: err.message || "Failed to register" });
+    return res.status(400).json({ error: formatApiError(err) });
   }
 });
 
@@ -71,7 +79,7 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
     return res.status(201).json(result);
   } catch (err: any) {
     console.error("Register error:", err);
-    return res.status(400).json({ error: err.message || "Failed to register" });
+    return res.status(400).json({ error: formatApiError(err) });
   }
 });
 
@@ -90,7 +98,7 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
     return res.json(result);
   } catch (err: any) {
     console.error("Login error:", err);
-    return res.status(400).json({ error: err.message || "Failed to log in" });
+    return res.status(400).json({ error: formatApiError(err) });
   }
 });
 
@@ -118,7 +126,7 @@ app.post("/api/auth/send-otp", async (req: Request, res: Response) => {
     return res.json({ message: "OTP code sent to email successfully" });
   } catch (err: any) {
     console.error("Send OTP error:", err);
-    return res.status(500).json({ error: err.message || "Failed to send OTP" });
+    return res.status(500).json({ error: formatApiError(err) });
   }
 });
 
@@ -131,7 +139,7 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
     return res.json(result);
   } catch (err: any) {
     console.error("Verify OTP error:", err);
-    return res.status(400).json({ error: err.message || "Failed to verify OTP" });
+    return res.status(400).json({ error: formatApiError(err) });
   }
 });
 
@@ -175,7 +183,7 @@ app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
     return res.json({ message: "Password updated successfully" });
   } catch (err: any) {
     console.error("Reset password error:", err);
-    return res.status(500).json({ error: err.message || "Failed to reset password" });
+    return res.status(500).json({ error: formatApiError(err) });
   }
 });
 
