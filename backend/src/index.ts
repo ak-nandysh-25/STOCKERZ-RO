@@ -34,7 +34,6 @@ app.use(
     credentials: true,
   })
 );
-app.options("*", cors());
 app.use(express.json({ limit: "10mb" }));
 
 // Health Check
@@ -730,7 +729,7 @@ const __dirname = path.dirname(__filename);
 const publicPath = path.join(__dirname, "../../.output/public");
 app.use(express.static(publicPath));
 
-app.get("/{*path}", (req: Request, res: Response, next) => {
+app.use((req: Request, res: Response, next) => {
   if (req.path.startsWith("/api")) return next();
   res.sendFile(path.join(publicPath, "index.html"), (err) => {
     if (err) next();
