@@ -58,6 +58,8 @@ function AuthPage() {
     });
   }, [nav]);
 
+  const [signupOtpSent, setSignupOtpSent] = useState(false);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -111,6 +113,24 @@ function AuthPage() {
           return;
         }
 
+        // Step 1: Send OTP email first
+        if (!signupOtpSent) {
+          await apiClient.auth.sendOtp(email.trim());
+          setSignupOtpSent(true);
+          toast.success(`Verification OTP sent to ${email.trim()}! Please enter the code.`);
+          setLoading(false);
+          return;
+        }
+
+        // Step 2: Verify OTP and Register Shop
+        if (!otpCode || otpCode.trim().length < 6) {
+          toast.error("Please enter the complete 6-digit OTP verification code.");
+          setLoading(false);
+          return;
+        }
+
+        await apiClient.auth.verifyOtp(email.trim(), otpCode.trim());
+
         const res = await apiClient.auth.signup({
           email: email.trim(),
           password,
@@ -118,7 +138,7 @@ function AuthPage() {
         });
 
         await qc.invalidateQueries({ queryKey: ["shop"] });
-        toast.success(`Shop "${res.shop?.name || "MY SHOP"}" created successfully!`);
+        toast.success(`Shop "${res.shop?.name || "MY SHOP"}" verified and registered successfully!`);
         nav({ to: "/dashboard", replace: true });
         return;
       } else {
@@ -148,17 +168,17 @@ function AuthPage() {
         </div>
 
         <h1 className="text-2xl font-bold">
-          {mode === "login" ? "Sign in" : mode === "signup" ? "Create your shop" : "Reset password"}
+          {mode === "login" ? "Sign in" : mode === "signup" ? "Create & verify your shop" : "Reset password"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {mode === "login"
             ? "Sign in to access your shop dashboard"
             : mode === "signup"
-            ? "Add your shop profile details to get started"
+            ? signupOtpSent
+              ? `Enter the 6-digit OTP code sent to ${email}`
+              : "Add your shop details & verify with email OTP"
             : "Enter your registered email to receive a password reset link"}
         </p>
-
-
 
         {mode === "forgot" && resetSent && (
           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
@@ -166,8 +186,21 @@ function AuthPage() {
           </div>
         )}
 
+        {mode === "signup" && signupOtpSent && (
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+            <span>OTP sent to <strong>{email}</strong></span>
+            <button
+              type="button"
+              onClick={() => setSignupOtpSent(false)}
+              className="text-xs font-semibold underline hover:text-white"
+            >
+              Edit Details
+            </button>
+          </div>
+        )}
+
         <form onSubmit={submit} className="mt-6 space-y-4">
-          {mode === "signup" && (
+          {mode === "signup" && !signupOtpSent && (
             <>
               <Field label="Shop name">
                 <input
@@ -219,15 +252,31 @@ function AuthPage() {
             </>
           )}
 
-          <Field label="Email">
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
-            />
-          </Field>
+          {mode === "signup" && signupOtpSent && (
+            <Field label="6-Digit Verification OTP Code">
+              <input
+                type="text"
+                required
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                placeholder="Enter 6-digit OTP"
+                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm font-mono tracking-widest text-center outline-none focus:ring-2 focus:ring-primary"
+              />
+            </Field>
+          )}
+
+          {(!signupOtpSent || mode !== "signup") && (
+            <Field label="Email">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
+            </Field>
+          )}
 
           {mode === "forgot" && resetSent && (
             <>
@@ -265,7 +314,7 @@ function AuthPage() {
             </>
           )}
 
-          {mode !== "forgot" && (
+          {mode !== "forgot" && !signupOtpSent && (
             <Field
               label="Password"
               action={
@@ -320,7 +369,7 @@ function AuthPage() {
             </Field>
           )}
 
-          {mode === "signup" && (
+          {mode === "signup" && !signupOtpSent && (
             <Field label="Confirm password">
               <div className="relative">
                 <input
@@ -341,7 +390,7 @@ function AuthPage() {
                   {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {mode === "signup" && confirmPassword.length > 0 && (
+              {confirmPassword.length > 0 && (
                 <div className="mt-1.5 text-xs">
                   <div className={`flex items-center gap-1.5 transition ${passwordsMatch ? "text-emerald-400 font-medium" : "text-red-400"}`}>
                     <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${passwordsMatch ? "bg-emerald-500/20 text-emerald-400 font-bold" : "bg-red-500/20 text-red-400 font-bold"}`}>
@@ -363,7 +412,9 @@ function AuthPage() {
             {mode === "login"
               ? "Sign in"
               : mode === "signup"
-              ? "Register"
+              ? signupOtpSent
+                ? "Verify OTP & Create Shop"
+                : "Send Verification OTP Code"
               : resetSent
               ? "Verify OTP & Reset Password"
               : "Send OTP Code"}
