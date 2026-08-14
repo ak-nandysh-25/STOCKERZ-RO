@@ -1,4 +1,11 @@
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    const override = localStorage.getItem("VITE_API_BASE_URL");
+    if (override && override.trim()) {
+      return override.trim().replace(/\/+$/, "");
+    }
+  }
+
   const envUrl =
     (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) ||
     (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL);
@@ -10,8 +17,6 @@ const getApiBaseUrl = () => {
   }
   return "http://localhost:5000";
 };
-
-const API_BASE_URL = getApiBaseUrl();
 
 const TOKEN_KEY = "stockerz_auth_token";
 
@@ -33,6 +38,7 @@ export function clearStoredToken() {
 }
 
 async function request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const baseUrl = getApiBaseUrl();
   const token = getStoredToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -46,7 +52,7 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
+    const response = await fetch(`${baseUrl}${cleanEndpoint}`, {
       ...options,
       headers,
     });
@@ -60,7 +66,7 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
     return data;
   } catch (err: any) {
     if (err.name === "TypeError" && err.message === "Failed to fetch") {
-      throw new Error(`Unable to connect to backend at ${API_BASE_URL}. If backend is hosted on Render, it may take 15-30s to wake up from idle. Please try again in a moment.`);
+      throw new Error(`Unable to connect to backend at ${baseUrl}. Please ensure your backend web service is deployed on Render/Railway or configure VITE_API_BASE_URL on Vercel.`);
     }
     throw err;
   }
