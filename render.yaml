@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: stockerz-ro-api
+    name: stockerz-ro
     env: node
     buildCommand: npm install && npx prisma generate --schema=prisma/schema.prisma
-    startCommand: npm run server
+    startCommand: npm start
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -15,5 +15,3 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
-      - key: PORT
-        value: 5000
