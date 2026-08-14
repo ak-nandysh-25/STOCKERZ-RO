@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: stockerz-ro-api
+    env: node
+    buildCommand: npm install && npx prisma generate --schema=prisma/schema.prisma && npm run build
+    startCommand: npm run server
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: PORT
+        value: 5000

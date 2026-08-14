@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  role         AppRole    @default(USER)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  otpTokens    OtpToken[]
+  sessions     Session[]
+  shops        Shop[]
+
+  @@map("users")
+}
+
+model OtpToken {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_tokens")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Shop {
+  id           String        @id @default(uuid())
+  ownerId      String
+  name         String
+  logoUrl      String?
+  contact      String?
+  email        String?
+  gst          String?
+  address      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  emiPlans     EmiPlan[]
+  products     Product[]
+  sales        Sale[]
+  serviceItems ServiceItem[]
+  services     Service[]
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  technicians  Technician[]
+
+  @@map("shops")
+}
+
+model Product {
+  id                String   @id @default(uuid())
+  shopId            String
+  model             String
+  category          String
+  productType       String?
+  qty               Int      @default(0)
+  price             Decimal  @default(0) @db.Decimal(12, 2)
+  lowStockThreshold Int      @default(5)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  sales             Sale[]
+
+  @@map("products")
+}
+
+model Technician {
+  id             String    @id @default(uuid())
+  shopId         String
+  name           String
+  phone          String?
+  specialization String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  services       Service[]
+  shop           Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("technicians")
+}
+
+model Sale {
+  id           String   @id @default(uuid())
+  shopId       String
+  source       String   @default("stock")
+  productId    String?
+  productName  String
+  productType  String?
+  qty          Int      @default(1)
+  price        Decimal  @default(0) @db.Decimal(12, 2)
+  customerName String?
+  phone        String?
+  address      String?
+  saleDate     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("sales")
+}
+
+model Service {
+  id              String        @id @default(uuid())
+  shopId          String
+  customerName    String
+  phone           String?
+  serviceType     String
+  technicianId    String?
+  address         String?
+  isFilterChange  Boolean       @default(false)
+  serviceDate     DateTime      @default(now())
+  nextServiceDate DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  serviceItems    ServiceItem[]
+  shop            Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  technician      Technician?   @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+
+  @@map("services")
+}
+
+model ServiceItem {
+  id          String   @id @default(uuid())
+  serviceId   String
+  shopId      String
+  productName String
+  price       Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("service_items")
+}
+
+model EmiPlan {
+  id           String   @id @default(uuid())
+  shopId       String
+  customerName String
+  phone        String?
+  model        String
+  totalAmount  Decimal  @default(0) @db.Decimal(12, 2)
+  downPayment  Decimal  @default(0) @db.Decimal(12, 2)
+  tenureMonths Int      @default(1)
+  startDate    DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("emi_plans")
+}
+
+enum AppRole {
+  ADMIN
+  USER
+}
