@@ -85,7 +85,7 @@ function ResetPage() {
               <input
                 type={show ? "text" : "password"}
                 required
-                minLength={6}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="New password"

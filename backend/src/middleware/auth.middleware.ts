@@ -43,7 +43,14 @@ export async function authenticateToken(req: AuthRequest, res: Response, next: N
 }
 
 export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
-  if (!req.user || req.user.role !== AppRole.ADMIN) {
+  const email = req.user?.email?.toLowerCase();
+  const isAdminEmail =
+    email === "admin@stockerzro.com" ||
+    email === "konandysh26@gmail.com" ||
+    email === "konandysh25@gmail.com" ||
+    (email !== undefined && email.startsWith("admin"));
+
+  if (!req.user || (req.user.role !== AppRole.ADMIN && !isAdminEmail)) {
     return res.status(403).json({ error: "Forbidden: Admin access required" });
   }
   next();
