@@ -173,3 +173,11 @@ enum AppRole {
   ADMIN
   USER
 }
+
+model DeletedUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  deletedAt DateTime @default(now())
+
+  @@map("deleted_users")
+}

@@ -11,6 +11,7 @@ import {
   generateToken,
   authenticateToken,
   requireAdmin,
+  isDeletedEmail,
   AuthRequest,
   AppRole,
 } from "./auth";
@@ -112,10 +113,17 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 
 app.post("/api/auth/send-otp", async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const { email, isSignup } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     const cleanEmail = email.trim().toLowerCase();
+
+    if (!isSignup) {
+      const deleted = await isDeletedEmail(cleanEmail);
+      if (deleted) {
+        return res.status(403).json({ error: "This account has been deleted by an administrator. Access denied." });
+      }
+    }
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
@@ -755,6 +763,14 @@ app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, async (req: 
       prisma.user.delete({ where: { id } }),
     ]);
 
+    if (user.role !== "ADMIN") {
+      await prisma.deletedUser.upsert({
+        where: { email: user.email.toLowerCase() },
+        create: { email: user.email.toLowerCase() },
+        update: {},
+      }).catch(() => {});
+    }
+
     return res.json({ success: true, message: `User ${user.email} and associated PostgreSQL database records deleted.` });
   } catch (err: any) {
     console.error("Delete user error:", err);
@@ -795,6 +811,7 @@ app.delete("/api/admin/shops/:id", authenticateToken, requireAdmin, async (req: 
     if (!shop) return res.status(404).json({ error: "Shop not found" });
 
     const ownerId = shop.ownerId;
+    const ownerEmail = shop.owner?.email;
     const isOwnerAdmin = shop.owner?.role === "ADMIN";
 
     await prisma.$transaction([
@@ -815,6 +832,14 @@ app.delete("/api/admin/shops/:id", authenticateToken, requireAdmin, async (req: 
       ]).catch((err) => {
         console.warn("[Admin Delete] Note on owner user deletion:", err?.message || err);
       });
+
+      if (ownerEmail) {
+        await prisma.deletedUser.upsert({
+          where: { email: ownerEmail.toLowerCase() },
+          create: { email: ownerEmail.toLowerCase() },
+          update: {},
+        }).catch(() => {});
+      }
     }
 
     return res.json({ success: true, message: `Shop ${shop.name} and all PostgreSQL database records deleted.` });
@@ -836,6 +861,7 @@ app.post("/api/admin/purge-non-admins", authenticateToken, requireAdmin, async (
     });
 
     const userIds = nonAdmins.map((u) => u.id);
+    const userEmails = nonAdmins.map((u) => u.email.toLowerCase());
     if (userIds.length === 0) {
       return res.json({ message: "No non-admin user accounts found to purge." });
     }
@@ -859,6 +885,14 @@ app.post("/api/admin/purge-non-admins", authenticateToken, requireAdmin, async (
       prisma.session.deleteMany({ where: { userId: { in: userIds } } }),
       prisma.user.deleteMany({ where: { id: { in: userIds } } }),
     ]);
+
+    for (const email of userEmails) {
+      await prisma.deletedUser.upsert({
+        where: { email },
+        create: { email },
+        update: {},
+      }).catch(() => {});
+    }
 
     return res.json({ success: true, count: userIds.length, message: `Purged ${userIds.length} non-admin user accounts and all their PostgreSQL database records.` });
   } catch (err: any) {

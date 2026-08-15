@@ -4,6 +4,7 @@ export {
   comparePassword,
   generateToken,
   verifyToken,
+  isDeletedEmail,
   AppRole,
   type AuthUserPayload as AuthUser,
 } from "./services/auth.service";

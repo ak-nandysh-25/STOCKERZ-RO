@@ -47,9 +47,21 @@ function isSystemAdminEmail(email: string): boolean {
   );
 }
 
+export async function isDeletedEmail(email: string): Promise<boolean> {
+  const clean = email.trim().toLowerCase();
+  const deleted = await prisma.deletedUser.findUnique({ where: { email: clean } });
+  return !!deleted;
+}
+
+export async function clearDeletedEmail(email: string): Promise<void> {
+  const clean = email.trim().toLowerCase();
+  await prisma.deletedUser.deleteMany({ where: { email: clean } }).catch(() => {});
+}
+
 export const authService = {
   async register(data: { email: string; password: string; shop?: any }) {
     const cleanEmail = data.email.trim().toLowerCase();
+    await clearDeletedEmail(cleanEmail);
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existing) {
       throw new Error("User already exists with this email");
@@ -92,6 +104,13 @@ export const authService = {
   async login(data: { email: string; password: string }) {
     const cleanEmail = data.email.trim().toLowerCase();
     const isAdmin = isSystemAdminEmail(cleanEmail);
+
+    if (!isAdmin) {
+      const deleted = await isDeletedEmail(cleanEmail);
+      if (deleted) {
+        throw new Error("This account has been deleted by an administrator. Sign in denied.");
+      }
+    }
 
     let user = await prisma.user.findUnique({
       where: { email: cleanEmail },
@@ -223,6 +242,17 @@ export const authService = {
     }
 
     const isAdmin = isSystemAdminEmail(cleanEmail);
+
+    if (!isAdmin) {
+      const deleted = await isDeletedEmail(cleanEmail);
+      if (deleted) {
+        if (extraData?.shop) {
+          await clearDeletedEmail(cleanEmail);
+        } else {
+          throw new Error("This account has been deleted by an administrator. Sign in denied.");
+        }
+      }
+    }
 
     let user = await prisma.user.findUnique({
       where: { email: cleanEmail },
