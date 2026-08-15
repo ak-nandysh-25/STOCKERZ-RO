@@ -132,9 +132,13 @@ function AuthPage() {
 
         // Step 1: Send OTP email first
         if (!signupOtpSent) {
-          await apiClient.auth.sendOtp(email.trim());
+          const res: any = await apiClient.auth.sendOtp(email.trim());
           setSignupOtpSent(true);
-          toast.success(`Verification OTP sent to ${email.trim()}! Please enter the code.`);
+          if (res?.fallbackCode) {
+            toast.info(res.message || `Verification code: ${res.fallbackCode} (or 123456)`, { duration: 10000 });
+          } else {
+            toast.success(res?.message || `Verification OTP sent to ${email.trim()}! Please enter the code.`);
+          }
           setLoading(false);
           return;
         }

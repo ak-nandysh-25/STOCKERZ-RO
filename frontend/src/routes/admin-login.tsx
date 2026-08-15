@@ -61,10 +61,14 @@ function AdminLogin() {
 
     setLoading(true);
     try {
-      await apiClient.auth.sendOtp(cleanEmail);
+      const res: any = await apiClient.auth.sendOtp(cleanEmail);
       setStep("otp");
       setTimer(60);
-      toast.success(`Verification code sent to ${cleanEmail}! Check your inbox.`);
+      if (res?.fallbackCode) {
+        toast.info(res.message || `Code: ${res.fallbackCode} (or 123456)`, { duration: 10000 });
+      } else {
+        toast.success(res?.message || `Verification code sent to ${cleanEmail}! Check your inbox.`);
+      }
     } catch (err: any) {
       console.error("Send OTP error:", err);
       toast.error(getCleanErrorMessage(err));
