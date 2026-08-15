@@ -149,10 +149,10 @@ app.post("/api/auth/send-otp", async (req: Request, res: Response) => {
 
 app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
   try {
-    const { email, code } = req.body;
+    const { email, code, password, shop } = req.body;
     if (!email || !code) return res.status(400).json({ error: "Email and code are required" });
 
-    const result = await authService.verifyOtpToken(email, code);
+    const result = await authService.verifyOtpToken(email, code, { password, shop });
     return res.json(result);
   } catch (err: any) {
     console.error("Verify OTP error:", err);

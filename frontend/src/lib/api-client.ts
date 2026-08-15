@@ -108,10 +108,10 @@ export const apiClient = {
         body: JSON.stringify({ email }),
       });
     },
-    async verifyOtp(email: string, code: string) {
+    async verifyOtp(email: string, code: string, extraData?: { password?: string; shop?: any }) {
       const res = await request<{ valid: boolean; user?: any; shop?: any; token?: string }>("/api/auth/verify-otp", {
         method: "POST",
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ email, code, ...extraData }),
       });
       if (res.token) setStoredToken(res.token);
       return res;

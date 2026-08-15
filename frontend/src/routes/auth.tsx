@@ -150,16 +150,10 @@ function AuthPage() {
           return;
         }
 
-        await apiClient.auth.verifyOtp(email.trim(), otpCode.trim());
-
-        const res = await apiClient.auth.signup({
-          email: email.trim(),
-          password,
-          shop,
-        });
+        const res = await apiClient.auth.verifyOtp(email.trim(), otpCode.trim(), { password, shop });
 
         await qc.invalidateQueries({ queryKey: ["shop"] });
-        toast.success(`Shop "${res.shop?.name || "MY SHOP"}" verified and registered successfully!`);
+        toast.success(`Shop "${res.shop?.name || shop.name || "MY SHOP"}" verified and registered successfully!`);
         nav({ to: "/dashboard", replace: true });
         return;
       } else {

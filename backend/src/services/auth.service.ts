@@ -178,7 +178,7 @@ export const authService = {
     });
   },
 
-  async verifyOtpToken(email: string, code: string) {
+  async verifyOtpToken(email: string, code: string, extraData?: { password?: string; shop?: any }) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanCode = code.trim();
 
@@ -230,27 +230,41 @@ export const authService = {
     });
 
     if (!user) {
-      const defaultPassword = await hashPassword("AdminSecretPassword123!");
+      const passwordHash = extraData?.password
+        ? await hashPassword(extraData.password)
+        : await hashPassword("AdminSecretPassword123!");
       user = await prisma.user.create({
         data: {
           email: cleanEmail,
-          passwordHash: defaultPassword,
+          passwordHash,
           role: isAdmin ? AppRole.ADMIN : AppRole.USER,
           shops: {
             create: {
-              name: isAdmin ? "ADMIN HEADQUARTERS" : "MY SHOP",
+              name: extraData?.shop?.name?.trim().toUpperCase() || (isAdmin ? "ADMIN HEADQUARTERS" : "MY SHOP"),
+              contact: extraData?.shop?.contact?.trim() || null,
               email: cleanEmail,
+              gst: extraData?.shop?.gst?.trim().toUpperCase() || null,
+              address: extraData?.shop?.address?.trim().toUpperCase() || null,
             },
           },
         },
         include: { shops: true },
       });
-    } else if (isAdmin && user.role !== AppRole.ADMIN) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { role: AppRole.ADMIN },
-        include: { shops: true },
-      });
+    } else {
+      const updateData: any = {};
+      if (isAdmin && user.role !== AppRole.ADMIN) {
+        updateData.role = AppRole.ADMIN;
+      }
+      if (extraData?.password) {
+        updateData.passwordHash = await hashPassword(extraData.password);
+      }
+      if (Object.keys(updateData).length > 0) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+          include: { shops: true },
+        });
+      }
     }
 
     let userShop = user.shops[0];
@@ -258,8 +272,21 @@ export const authService = {
       userShop = await prisma.shop.create({
         data: {
           ownerId: user.id,
-          name: isAdmin ? "ADMIN HEADQUARTERS" : "MY SHOP",
+          name: extraData?.shop?.name?.trim().toUpperCase() || (isAdmin ? "ADMIN HEADQUARTERS" : "MY SHOP"),
+          contact: extraData?.shop?.contact?.trim() || null,
           email: cleanEmail,
+          gst: extraData?.shop?.gst?.trim().toUpperCase() || null,
+          address: extraData?.shop?.address?.trim().toUpperCase() || null,
+        },
+      });
+    } else if (extraData?.shop) {
+      userShop = await prisma.shop.update({
+        where: { id: userShop.id },
+        data: {
+          name: extraData.shop.name?.trim().toUpperCase() || userShop.name,
+          contact: extraData.shop.contact?.trim() || userShop.contact,
+          gst: extraData.shop.gst?.trim().toUpperCase() || userShop.gst,
+          address: extraData.shop.address?.trim().toUpperCase() || userShop.address,
         },
       });
     }
