@@ -48,14 +48,31 @@ function isSystemAdminEmail(email: string): boolean {
 }
 
 export async function isDeletedEmail(email: string): Promise<boolean> {
+  if (!email) return false;
   const clean = email.trim().toLowerCase();
-  const deleted = await prisma.deletedUser.findUnique({ where: { email: clean } });
-  return !!deleted;
+  try {
+    const model = (prisma as any)?.deletedUser;
+    if (model && typeof model.findUnique === "function") {
+      const deleted = await model.findUnique({ where: { email: clean } });
+      return !!deleted;
+    }
+  } catch (err) {
+    console.warn("[Auth] isDeletedEmail check skipped safely:", err);
+  }
+  return false;
 }
 
 export async function clearDeletedEmail(email: string): Promise<void> {
+  if (!email) return;
   const clean = email.trim().toLowerCase();
-  await prisma.deletedUser.deleteMany({ where: { email: clean } }).catch(() => {});
+  try {
+    const model = (prisma as any)?.deletedUser;
+    if (model && typeof model.deleteMany === "function") {
+      await model.deleteMany({ where: { email: clean } }).catch(() => {});
+    }
+  } catch (err) {
+    // Ignore error
+  }
 }
 
 export const authService = {

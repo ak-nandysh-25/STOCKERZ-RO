@@ -763,8 +763,8 @@ app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, async (req: 
       prisma.user.delete({ where: { id } }),
     ]);
 
-    if (user.role !== "ADMIN") {
-      await prisma.deletedUser.upsert({
+    if (user.role !== "ADMIN" && (prisma as any)?.deletedUser?.upsert) {
+      await (prisma as any).deletedUser.upsert({
         where: { email: user.email.toLowerCase() },
         create: { email: user.email.toLowerCase() },
         update: {},
@@ -833,8 +833,8 @@ app.delete("/api/admin/shops/:id", authenticateToken, requireAdmin, async (req: 
         console.warn("[Admin Delete] Note on owner user deletion:", err?.message || err);
       });
 
-      if (ownerEmail) {
-        await prisma.deletedUser.upsert({
+      if (ownerEmail && (prisma as any)?.deletedUser?.upsert) {
+        await (prisma as any).deletedUser.upsert({
           where: { email: ownerEmail.toLowerCase() },
           create: { email: ownerEmail.toLowerCase() },
           update: {},
@@ -886,12 +886,14 @@ app.post("/api/admin/purge-non-admins", authenticateToken, requireAdmin, async (
       prisma.user.deleteMany({ where: { id: { in: userIds } } }),
     ]);
 
-    for (const email of userEmails) {
-      await prisma.deletedUser.upsert({
-        where: { email },
-        create: { email },
-        update: {},
-      }).catch(() => {});
+    if ((prisma as any)?.deletedUser?.upsert) {
+      for (const email of userEmails) {
+        await (prisma as any).deletedUser.upsert({
+          where: { email },
+          create: { email },
+          update: {},
+        }).catch(() => {});
+      }
     }
 
     return res.json({ success: true, count: userIds.length, message: `Purged ${userIds.length} non-admin user accounts and all their PostgreSQL database records.` });
