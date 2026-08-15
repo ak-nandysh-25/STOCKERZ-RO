@@ -729,12 +729,35 @@ app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, async (req: 
       return res.status(400).json({ error: "Cannot delete your active admin account." });
     }
 
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: { shops: true },
+    });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    await prisma.user.delete({ where: { id } });
-    return res.json({ success: true, message: `User ${user.email} and associated data deleted.` });
+    const shopIds = user.shops.map((s) => s.id);
+
+    if (shopIds.length > 0) {
+      await prisma.$transaction([
+        prisma.serviceItem.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.service.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.sale.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.product.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.technician.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.emiPlan.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.shop.deleteMany({ where: { id: { in: shopIds } } }),
+      ]);
+    }
+
+    await prisma.$transaction([
+      prisma.otpToken.deleteMany({ where: { userId: id } }),
+      prisma.session.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    return res.json({ success: true, message: `User ${user.email} and associated PostgreSQL database records deleted.` });
   } catch (err: any) {
+    console.error("Delete user error:", err);
     return res.status(500).json({ error: formatApiError(err) });
   }
 });
@@ -765,21 +788,38 @@ app.get("/api/admin/shops", authenticateToken, requireAdmin, async (req: AuthReq
 app.delete("/api/admin/shops/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as { id: string };
-    const shop = await prisma.shop.findUnique({ where: { id } });
+    const shop = await prisma.shop.findUnique({
+      where: { id },
+      include: { owner: true },
+    });
     if (!shop) return res.status(404).json({ error: "Shop not found" });
 
     const ownerId = shop.ownerId;
-    await prisma.shop.delete({ where: { id } });
+    const isOwnerAdmin = shop.owner?.role === "ADMIN";
 
-    if (ownerId) {
-      const owner = await prisma.user.findUnique({ where: { id: ownerId } });
-      if (owner && owner.role !== "ADMIN") {
-        await prisma.user.delete({ where: { id: ownerId } }).catch(() => {});
-      }
+    await prisma.$transaction([
+      prisma.serviceItem.deleteMany({ where: { shopId: id } }),
+      prisma.service.deleteMany({ where: { shopId: id } }),
+      prisma.sale.deleteMany({ where: { shopId: id } }),
+      prisma.product.deleteMany({ where: { shopId: id } }),
+      prisma.technician.deleteMany({ where: { shopId: id } }),
+      prisma.emiPlan.deleteMany({ where: { shopId: id } }),
+      prisma.shop.delete({ where: { id } }),
+    ]);
+
+    if (ownerId && !isOwnerAdmin) {
+      await prisma.$transaction([
+        prisma.otpToken.deleteMany({ where: { userId: ownerId } }),
+        prisma.session.deleteMany({ where: { userId: ownerId } }),
+        prisma.user.delete({ where: { id: ownerId } }),
+      ]).catch((err) => {
+        console.warn("[Admin Delete] Note on owner user deletion:", err?.message || err);
+      });
     }
 
-    return res.json({ success: true, message: `Shop ${shop.name} deleted.` });
+    return res.json({ success: true, message: `Shop ${shop.name} and all PostgreSQL database records deleted.` });
   } catch (err: any) {
+    console.error("Delete shop error:", err);
     return res.status(500).json({ error: formatApiError(err) });
   }
 });
@@ -792,20 +832,37 @@ app.post("/api/admin/purge-non-admins", authenticateToken, requireAdmin, async (
         role: "USER",
         NOT: { id: callerId },
       },
-      select: { id: true },
+      include: { shops: true },
     });
 
-    const ids = nonAdmins.map((u) => u.id);
-    if (ids.length === 0) {
+    const userIds = nonAdmins.map((u) => u.id);
+    if (userIds.length === 0) {
       return res.json({ message: "No non-admin user accounts found to purge." });
     }
 
-    await prisma.user.deleteMany({
-      where: { id: { in: ids } },
-    });
+    const shopIds = nonAdmins.flatMap((u) => u.shops.map((s) => s.id));
 
-    return res.json({ success: true, count: ids.length, message: `Purged ${ids.length} non-admin users and their shop data.` });
+    if (shopIds.length > 0) {
+      await prisma.$transaction([
+        prisma.serviceItem.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.service.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.sale.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.product.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.technician.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.emiPlan.deleteMany({ where: { shopId: { in: shopIds } } }),
+        prisma.shop.deleteMany({ where: { id: { in: shopIds } } }),
+      ]);
+    }
+
+    await prisma.$transaction([
+      prisma.otpToken.deleteMany({ where: { userId: { in: userIds } } }),
+      prisma.session.deleteMany({ where: { userId: { in: userIds } } }),
+      prisma.user.deleteMany({ where: { id: { in: userIds } } }),
+    ]);
+
+    return res.json({ success: true, count: userIds.length, message: `Purged ${userIds.length} non-admin user accounts and all their PostgreSQL database records.` });
   } catch (err: any) {
+    console.error("Purge non-admins error:", err);
     return res.status(500).json({ error: formatApiError(err) });
   }
 });
