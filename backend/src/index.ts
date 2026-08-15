@@ -1,6 +1,8 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import { prisma } from "./db";
 import {
   authService,
@@ -14,7 +16,13 @@ import {
 } from "./auth";
 import { sendOtpEmail } from "./mailer";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -122,7 +130,13 @@ app.post("/api/auth/send-otp", async (req: Request, res: Response) => {
       },
     });
 
-    await sendOtpEmail(cleanEmail, code);
+    const mailResult = await sendOtpEmail(cleanEmail, code);
+    if (!mailResult.success) {
+      return res.status(500).json({
+        error: `Failed to deliver OTP email: ${mailResult.error || "Email sending failed"}. Please check email address or SMTP configuration.`,
+      });
+    }
+
     return res.json({ message: "OTP code sent to email successfully" });
   } catch (err: any) {
     console.error("Send OTP error:", err);
@@ -794,11 +808,6 @@ app.post("/api/admin/purge-non-admins", authenticateToken, requireAdmin, async (
 });
 
 // Static Asset & SPA Frontend Fallback
-import path from "path";
-import { fileURLToPath } from "url";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const publicPath = path.join(__dirname, "../../.output/public");
 app.use(express.static(publicPath));
 

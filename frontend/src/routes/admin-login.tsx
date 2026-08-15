@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { ArrowRight, Eye, EyeOff, KeyRound, Loader2, Mail, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getAppRedirectUrl } from "@/lib/app-utils";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/admin-login")({
 
 function AdminLogin() {
   const nav = useNavigate();
+  const qc = useQueryClient();
   const [email, setEmail] = useState("konandysh26@gmail.com");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -66,7 +67,7 @@ function AdminLogin() {
       toast.success(`Verification code sent to ${cleanEmail}! Check your inbox.`);
     } catch (err: any) {
       console.error("Send OTP error:", err);
-      toast.error(err.message ?? "Failed to send OTP code.");
+      toast.error(getCleanErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -100,11 +101,12 @@ function AdminLogin() {
         return;
       }
 
+      await qc.invalidateQueries();
       toast.success("OTP Verified! Redirecting to Admin Command Center...");
-      nav({ to: "/admin" });
+      nav({ to: "/admin", replace: true });
     } catch (err: any) {
       console.error("Verify OTP error:", err);
-      toast.error(err.message ?? "Invalid or expired OTP code.");
+      toast.error(getCleanErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -134,11 +136,12 @@ function AdminLogin() {
         return;
       }
 
+      await qc.invalidateQueries();
       toast.success("Welcome back, Administrator!");
-      nav({ to: "/admin" });
+      nav({ to: "/admin", replace: true });
     } catch (err: any) {
       console.error("Password login error:", err);
-      toast.error(err.message ?? "Invalid email or password.");
+      toast.error(getCleanErrorMessage(err));
     } finally {
       setLoading(false);
     }

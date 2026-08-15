@@ -16,6 +16,23 @@ function ResetPage() {
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+
+  async function handleSendOtp() {
+    if (!email.trim()) {
+      toast.error("Please enter your registered email address first");
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      await apiClient.auth.sendOtp(email.trim());
+      toast.success(`Verification OTP sent to ${email.trim()}! Please check your inbox.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send OTP code");
+    } finally {
+      setSendingOtp(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,8 +54,8 @@ function ResetPage() {
     }
     try {
       await apiClient.auth.resetPassword({
-        email,
-        code: otpCode,
+        email: email.trim(),
+        code: otpCode.trim(),
         newPassword: password,
       });
       toast.success("Password updated successfully");
@@ -54,18 +71,28 @@ function ResetPage() {
     <div className="aurora-bg grid min-h-screen place-items-center px-4">
       <div className="glass w-full max-w-md rounded-2xl p-8">
         <h1 className="text-2xl font-bold">Set new password</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Enter your email, OTP code, and new password.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Enter your email, receive an OTP code, and set a new password.</p>
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Registered email address"
-              className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
-            />
+            <div className="flex gap-2">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Registered email address"
+                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                type="button"
+                disabled={sendingOtp || !email.trim()}
+                onClick={handleSendOtp}
+                className="whitespace-nowrap rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/40 px-3 py-2.5 text-xs font-semibold text-primary transition disabled:opacity-50"
+              >
+                {sendingOtp ? "Sending..." : "Send OTP"}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">6-Digit OTP Code</label>

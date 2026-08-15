@@ -59,6 +59,23 @@ function AuthPage() {
   }, [nav]);
 
   const [signupOtpSent, setSignupOtpSent] = useState(false);
+  const [resendingOtp, setResendingOtp] = useState(false);
+
+  async function handleResendOtp() {
+    if (!email.trim()) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    setResendingOtp(true);
+    try {
+      await apiClient.auth.sendOtp(email.trim());
+      toast.success(`New verification OTP sent to ${email.trim()}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to resend OTP verification code.");
+    } finally {
+      setResendingOtp(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -189,13 +206,23 @@ function AuthPage() {
         {mode === "signup" && signupOtpSent && (
           <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
             <span>OTP sent to <strong>{email}</strong></span>
-            <button
-              type="button"
-              onClick={() => setSignupOtpSent(false)}
-              className="text-xs font-semibold underline hover:text-white"
-            >
-              Edit Details
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={resendingOtp}
+                onClick={handleResendOtp}
+                className="text-xs font-semibold text-sky-300 underline hover:text-white disabled:opacity-50"
+              >
+                {resendingOtp ? "Sending..." : "Resend OTP"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSignupOtpSent(false)}
+                className="text-xs font-semibold text-slate-300 underline hover:text-white"
+              >
+                Edit Details
+              </button>
+            </div>
           </div>
         )}
 
@@ -253,17 +280,30 @@ function AuthPage() {
           )}
 
           {mode === "signup" && signupOtpSent && (
-            <Field label="6-Digit Verification OTP Code">
-              <input
-                type="text"
-                required
-                maxLength={6}
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
-                placeholder="Enter 6-digit OTP"
-                className="w-full rounded-lg bg-input px-3 py-2.5 text-sm font-mono tracking-widest text-center outline-none focus:ring-2 focus:ring-primary"
-              />
-            </Field>
+            <div className="space-y-2">
+              <Field label="6-Digit Verification OTP Code">
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full rounded-lg bg-input px-3 py-2.5 text-sm font-mono tracking-widest text-center outline-none focus:ring-2 focus:ring-primary"
+                />
+              </Field>
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                <span>Didn't receive code? Check spam folder or</span>
+                <button
+                  type="button"
+                  disabled={resendingOtp}
+                  onClick={handleResendOtp}
+                  className="font-medium text-primary hover:underline disabled:opacity-50"
+                >
+                  {resendingOtp ? "Sending..." : "Click to Resend OTP"}
+                </button>
+              </div>
+            </div>
           )}
 
           {(!signupOtpSent || mode !== "signup") && (
