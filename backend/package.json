@@ -1,0 +1,11 @@
+{
+  "name": "stockerz-ro-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx src/index.ts",
+    "build": "npx prisma generate --schema=../prisma/schema.prisma",
+    "dev": "npx tsx watch src/index.ts"
+  }
+}
