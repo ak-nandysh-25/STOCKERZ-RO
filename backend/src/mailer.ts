@@ -15,26 +15,20 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 let transporter: nodemailer.Transporter | null = null;
 
 function getTransporter() {
-  const gmailUser = process.env.GMAIL_USER?.trim();
-  const rawPass = process.env.GMAIL_APP_PASSWORD;
-  const gmailPass = rawPass ? rawPass.replace(/\s+/g, "") : undefined;
-
-  if (gmailUser && gmailPass) {
-    return nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: gmailUser,
-        pass: gmailPass,
-      },
-    });
-  }
+  const gmailUser = (process.env.GMAIL_USER || "konandysh25@gmail.com").trim();
+  const rawPass = process.env.GMAIL_APP_PASSWORD || "fprk jmpv xrch pply";
+  const gmailPass = rawPass.replace(/\s+/g, "");
 
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.ethereal.email",
-    port: Number(process.env.SMTP_PORT) || 587,
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.SMTP_USER || "",
-      pass: process.env.SMTP_PASS || "",
+      user: gmailUser,
+      pass: gmailPass,
+    },
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 }
@@ -48,9 +42,9 @@ export interface SendMailResult {
 export async function sendOtpEmail(to: string, code: string): Promise<SendMailResult> {
   const cleanTo = to.trim().toLowerCase();
   try {
-    const gmailUser = process.env.GMAIL_USER?.trim();
+    const gmailUser = (process.env.GMAIL_USER || "konandysh25@gmail.com").trim();
     const mailOptions = {
-      from: `"STOCKERZ RO" <${gmailUser || process.env.SMTP_FROM || "no-reply@stockerzro.com"}>`,
+      from: `"STOCKERZ RO Security" <${gmailUser}>`,
       to: cleanTo,
       subject: `Your STOCKERZ RO Verification Code: ${code}`,
       html: `
